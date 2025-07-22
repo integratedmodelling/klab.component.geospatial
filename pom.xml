@@ -34,6 +34,29 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.integratedmodelling</groupId>
+                <artifactId>klab.product</artifactId>
+                <version>1.0.1-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>package-component</goal>
+                        </goals>
+                        <configuration>
+                            <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
+                            <componentDescription>2D Geospatial adapters and algorithms for k.LAB</componentDescription>
+                            <componentLicenseName>GNU Affero GPL 3.0</componentLicenseName>
+                            <componentName>klab.component.geospatial</componentName>
+                            <componentUsageRights>*</componentUsageRights>
+                            <componentVendorName>Integrated Modelling Partnership</componentVendorName>
+                            <componentVendorEmail>info@integratedmodelling.org</componentVendorEmail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
     <properties>
