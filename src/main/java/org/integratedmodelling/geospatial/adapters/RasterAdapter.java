@@ -1,22 +1,18 @@
 package org.integratedmodelling.geospatial.adapters;
 
-import com.google.common.collect.Sets;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.knowledge.Artifact;
-import org.integratedmodelling.klab.api.knowledge.KlabAsset;
-import org.integratedmodelling.klab.api.knowledge.Observable;
-import org.integratedmodelling.klab.api.knowledge.Urn;
+import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
-import org.integratedmodelling.klab.api.services.runtime.Notification;
-import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
+import org.opengis.coverage.grid.GridCoverage;
 
-import java.awt.image.Raster;
 import java.util.Set;
 
 /**
@@ -62,10 +58,14 @@ public class RasterAdapter {
   @ResourceAdapter.Encoder
   public void encode(
       Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
-    builder.notification(Notification.debug("Encoding a raster."));
+    //builder.notification(Notification.debug("Encoding a raster."));
     readRaster(urn, builder, geometry, observable, scope);
-    // TODO
+    // TODO get the real Resource
+    //new ResourcesClient().resolveResource(List.of(urn.getUrn()), scope);
+    Resource resource = Resource.builder(urn.getUrn()).build(); // Fake resource
+    GridCoverage coverage = null; // Fake coverage. Get it from
 
+    new RasterEncoder().encodeFromCoverage(resource, urn.getParameters(), coverage, geometry, builder, scope);
   }
 
   private void readRaster(
