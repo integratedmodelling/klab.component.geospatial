@@ -16,20 +16,6 @@ package org.integratedmodelling.geospatial.adapters.raster;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import java.awt.image.RenderedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.media.jai.Interpolation;
-import javax.media.jai.InterpolationBicubic;
-import javax.media.jai.InterpolationBicubic2;
-import javax.media.jai.InterpolationBilinear;
-import javax.media.jai.InterpolationNearest;
-import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -56,6 +42,16 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+
+import javax.media.jai.*;
+import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.iterator.RandomIterFactory;
+import java.awt.image.RenderedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The {@code RasterEncoder} adapts a raster resource (file-based) to a passed geometry and builds
@@ -106,14 +102,15 @@ public class RasterEncoder {
       transformation = shell.parse(resource.getParameters().get("transform").toString());
     }
 
-    String bandMixer = null;
+    BandMixing.Operation bandMixer = null;
     // TODO use an enum here
     if (resource.getParameters().contains("bandmixer")) {
-      bandMixer = resource.getParameters().get("bandmixer", String.class);
-      //      if (!RasterAdapter.bandMixingOperations.contains(bandMixer)) {
-      //        throw new KlabUnsupportedFeatureException("Unsupported band mixing operation " +
-      // bandMixer);
-      //      }
+      try {
+        bandMixer = BandMixing.Operation.valueOf(resource.getParameters().get("bandmixer", String.class));
+      } catch (IllegalArgumentException e) {
+        // TODO send a message. For now, ignore it.
+        // "Unsupported band mixing operation " + resource.getParameters().get("bandmixer", String.class)
+      }
     }
 
     var xy = scale.getSpace().getShape();
@@ -167,26 +164,16 @@ public class RasterEncoder {
   }
 
   private double getCellMixerValue(
-      RandomIter iterator, long x, long y, String mixingOperation, int nBands) {
-    if (mixingOperation.equals("max_band")) {
-      return getBandOfMaxValue(iterator, x, y, nBands);
-    }
-    if (mixingOperation.equals("min_band")) {
-      return getBandOfMinValue(iterator, x, y, nBands);
-    }
-    if (mixingOperation.equals("max_value")) {
-      return getMaxCellValue(iterator, x, y, nBands);
-    }
-    if (mixingOperation.equals("min_value")) {
-      return getMinCellValue(iterator, x, y, nBands);
-    }
-    if (mixingOperation.equals("avg_value")) {
-      return getAvgCellValue(iterator, x, y, nBands);
-    }
-    if (mixingOperation.equals("sum_value")) {
-      return getSumCellValue(iterator, x, y, nBands);
-    }
-    return Double.NaN;
+      RandomIter iterator, long x, long y, BandMixing.Operation operation, int nBands) {
+    return switch (operation) {
+      case MAX_VALUE -> getMaxCellValue(iterator, x, y, nBands);
+      case MIN_VALUE -> getMinCellValue(iterator, x, y, nBands);
+      case AVG_VALUE -> getAvgCellValue(iterator, x, y, nBands);
+      case SUM_VALUE -> getSumCellValue(iterator, x, y, nBands);
+      case BAND_MAX_VALUE -> getBandOfMaxValue(iterator, x, y, nBands);
+      case BAND_MIN_VALUE -> getBandOfMinValue(iterator, x, y, nBands);
+      default -> Double.NaN;
+    };
   }
 
   private double getBandOfMaxValue(RandomIter iterator, long x, long y, int nBands) {
@@ -374,8 +361,7 @@ public class RasterEncoder {
   private GridCoverage getOriginalCoverage(Resource resource) {
 
     File mainFile = null;
-    for (var path : resource.getLocalPaths()) {
-      File file = new File(path);
+    for (var file : resource.getLocalFiles()) {
       if (RasterAdapter.fileExtensions.contains(Utils.Files.getFileExtension(file))) {
         if (file.exists() && file.canRead()) {
           mainFile = file;
