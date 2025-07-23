@@ -38,6 +38,7 @@ import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.opengis.coverage.grid.GridCoverage;
@@ -60,7 +61,7 @@ import java.util.Set;
 public class RasterEncoder {
 
   /**
-   * Take a Geotools coverage and do the rest. Separated so that WCS can use it as is.
+   * Take a Geotools coverage and do the rest. Separated so other adapters with raster result (WCS, STAC, OpenEO) can use it as is.
    *
    * @param resource
    * @param coverage
@@ -86,7 +87,7 @@ public class RasterEncoder {
     int band = 0;
     if (urnParameters.containsKey(RasterAdapter.BAND_PARAM)) {
       band = Integer.parseInt(urnParameters.get(RasterAdapter.BAND_PARAM));
-    } else if (!resource.getAdapterType().equals("stac")) {
+    } else {
       resource.getParameters().get(RasterAdapter.BAND_PARAM, 0);
     }
     int nBands = coverage.getNumSampleDimensions();
@@ -103,13 +104,11 @@ public class RasterEncoder {
     }
 
     BandMixing.Operation bandMixer = null;
-    // TODO use an enum here
     if (resource.getParameters().contains("bandmixer")) {
       try {
         bandMixer = BandMixing.Operation.valueOf(resource.getParameters().get("bandmixer", String.class));
       } catch (IllegalArgumentException e) {
-        // TODO send a message. For now, ignore it.
-        // "Unsupported band mixing operation " + resource.getParameters().get("bandmixer", String.class)
+        builder.notification(Notification.error( "Unsupported band mixing operation " + resource.getParameters().get("bandmixer", String.class)));
       }
     }
 
@@ -327,7 +326,7 @@ public class RasterEncoder {
    * @param resource
    * @return a coverage for the untransformed data. Never null
    */
-  private GridCoverage getCoverage(Resource resource, Geometry geometry) {
+  public GridCoverage getCoverage(Resource resource, Geometry geometry) {
 
     GridCoverage coverage = getOriginalCoverage(resource);
 

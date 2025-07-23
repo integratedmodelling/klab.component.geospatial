@@ -1,18 +1,24 @@
 package org.integratedmodelling.geospatial.adapters;
 
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.integratedmodelling.common.services.client.resources.ResourcesClient;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.ResourcesService;
+import org.integratedmodelling.klab.api.services.Service;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
+import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.opengis.coverage.grid.GridCoverage;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -60,16 +66,24 @@ public class RasterAdapter {
       Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
     //builder.notification(Notification.debug("Encoding a raster."));
     readRaster(urn, builder, geometry, observable, scope);
-    // TODO get the real Resource
-    //new ResourcesClient().resolveResource(List.of(urn.getUrn()), scope);
-    Resource resource = Resource.builder(urn.getUrn()).build(); // Fake resource
-    GridCoverage coverage = null; // Fake coverage. Get it from
-
-    new RasterEncoder().encodeFromCoverage(resource, urn.getParameters(), coverage, geometry, builder, scope);
   }
 
   private void readRaster(
-      Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {}
+      Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
+    //TODO move everything to a properly named file
+    RasterEncoder encoder = new RasterEncoder();
+    // TODO get the real Resource. For now, assume a single resource
+    Collection<ResourcesService> resourceServices = scope.getServices(ResourcesService.class);
+
+    Resource resource = null;
+    for (var resourceService : resourceServices) {
+      var resources = resourceService.resolveResource(List.of(urn.getUrn()), scope);
+      resource = (Resource) resources.getResources().get(0);
+    }
+    GridCoverage coverage = encoder.getCoverage(resource, geometry);
+
+    new RasterEncoder().encodeFromCoverage(resource, urn.getParameters(), coverage, geometry, builder, scope);
+  }
 
   public static void main(String[] args) {
     System.out.println("Hi, raster!");
