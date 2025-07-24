@@ -63,7 +63,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <plugin.id>${artifactId}</plugin.id>
+        <plugin.id>klab.component.geospatial</plugin.id>
         <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
         <plugin.version>${version}</plugin.version>
         <plugin.provider>klab</plugin.provider>
