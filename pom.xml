@@ -112,6 +112,17 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>com.konghq</groupId>
+            <artifactId>unirest-java</artifactId>
+            <version>3.14.5</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.javadev/underscore -->
+        <dependency>
+            <groupId>com.github.javadev</groupId>
+            <artifactId>underscore</artifactId>
+            <version>1.68</version>
+        </dependency>
     </dependencies>
 
 </project>
