@@ -27,6 +27,7 @@ import org.integratedmodelling.klab.api.geometry.impl.GeometryImpl;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Envelope;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.TemporalExtension;
+import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.FileSystemCacheBuilder;
 import org.integratedmodelling.klab.utilities.Utils;
@@ -64,12 +65,16 @@ public class WCSManager {
   private Authorization authorization = null;
   /*
   Using a cache for WCS responses.
-  May use a more sophisticated strategy later.
+  May use a more sophisticated strategy later. Should have a timeout per entry and a maintenance thread.
   See https://www.javacodegeeks.com/2013/12/extending-guava-caches-to-overflow-to-disk.html
    */
   private Cache<String, String> wcsCache =
       FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
 
+  /**
+   * TODO Unirest should be removed and normal HttpClient (or Utils.Http.Client) should
+   *  be used.
+   */
   static {
     // Note: SSL verification is disabled for compatibility with some WCS services
     // In a production environment, consider enabling SSL verification and properly
@@ -581,14 +586,24 @@ public class WCSManager {
    */
   public static void main(String[] args) {
     // Example: Get layer names from capabilities, then use describeCoverage on all layers
+
+    // This installs the geospatial object instantiators to make the static of() work
+    // in envelopes, projections etc.
+    ServiceConfiguration.injectInstantiators();
+
     WCSManager service =
-        new WCSManager("https://www.geo.euskadi.eus/WCS_KARTOGRAFIA", Version.create("1.0.0"));
+        new WCSManager("https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
+
+    //    WCSManager service =
+    //        new WCSManager("https://www.geo.euskadi.eus/WCS_KARTOGRAFIA",
+    // Version.create("1.0.0"));
     for (WCSLayer layer : service.getLayers()) {
-      System.out.println(layer);
-      // The service expects a URL like:
+      System.out.println("Found layer: " + layer.getName());
+      //      // The service expects a URL like:
+      //      //
       // https://www.geo.euskadi.eus/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer?SERVICE=WCS&VERSION=1.0.0&REQUEST=DescribeCoverage&COVERAGE=1
-      layer.describeCoverage();
-      System.out.println(layer);
+      //      layer.describeCoverage();
+      //      System.out.println(layer);
     }
   }
 
@@ -674,7 +689,10 @@ public class WCSManager {
               Map<?, ?> layer = U.fromXmlMap(response.getBody());
               Map<?, ?> offering =
                   Utils.Maps.get(layer, "CoverageDescription/CoverageOffering", Map.class);
-              Logging.INSTANCE.debug("Retrieved layer description: " + identifier);
+              // ...and then throw it away????
+
+              System.out.println("Retrieved layer description: " + offering);
+
             } else {
               Logging.INSTANCE.warn("Failed to retrieve layer description for: " + identifier);
             }
