@@ -60,7 +60,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <plugin.id>klab.component.geospatial</plugin.id>
         <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
-        <plugin.version>${version}</plugin.version>
+        <plugin.version>${project.version}</plugin.version>
         <plugin.provider>klab</plugin.provider>
         <plugin.dependencies/>
 
