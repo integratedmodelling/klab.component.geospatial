@@ -64,6 +64,7 @@ public class RasterEncoder {
    * Take a Geotools coverage and do the rest. Separated so other adapters with raster result (WCS, STAC, OpenEO) can use it as is.
    *
    * @param resource
+   * @param urnParameters
    * @param coverage
    * @param geometry
    * @param builder
@@ -344,15 +345,12 @@ public class RasterEncoder {
     /*
      * subset first
      */
-    GridCoverage transformedCoverage =
-        (GridCoverage) Operations.DEFAULT.resample(coverage, envelope, interpolation);
+    GridCoverage transformedCoverage = (GridCoverage) Operations.DEFAULT.resample(coverage, envelope, interpolation);
 
     /*
      * then resample
      */
-    transformedCoverage =
-        (GridCoverage)
-            Operations.DEFAULT.resample(transformedCoverage, crs, gridGeometry, interpolation);
+    transformedCoverage = (GridCoverage) Operations.DEFAULT.resample(transformedCoverage, crs, gridGeometry, interpolation);
 
     return transformedCoverage;
   }

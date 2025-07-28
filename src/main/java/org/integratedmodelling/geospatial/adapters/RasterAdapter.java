@@ -1,16 +1,26 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import oms3.ds.Grid;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
+import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.opengis.coverage.grid.GridCoverage;
+import org.opengis.coverage.grid.GridCoverageReader;
+import org.opengis.geometry.Envelope;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import java.awt.image.BufferedImage;
 import java.util.Set;
 
 /**
@@ -57,14 +67,7 @@ public class RasterAdapter {
   public void encode(
       Resource resource, Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
     //builder.notification(Notification.debug("Encoding a raster."));
-    readRaster(resource, urn, builder, geometry, observable, scope);
-  }
-
-  private void readRaster(
-      Resource resource, Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
-    //TODO move everything to a properly named file
-    RasterEncoder encoder = new RasterEncoder();
-    GridCoverage coverage = encoder.getCoverage(resource, geometry);
+    GridCoverage coverage = new RasterEncoder().getCoverage(resource, geometry);
 
     new RasterEncoder().encodeFromCoverage(resource, urn.getParameters(), coverage, geometry, builder, scope);
   }
