@@ -10,6 +10,12 @@
     </parent>
     <artifactId>klab.component.geospatial</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <repositories>
+        <repository>
+            <id>osgeo-alt</id>
+            <url>https://repo.osgeo.org/repository/release/</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
             <plugin>
@@ -34,29 +40,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.integratedmodelling</groupId>
-                <artifactId>klab.product</artifactId>
-                <version>1.0.1-SNAPSHOT</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>package-component</goal>
-                        </goals>
-                        <configuration>
-                            <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
-                            <componentDescription>2D Geospatial adapters and algorithms for k.LAB</componentDescription>
-                            <componentLicenseName>GNU Affero GPL 3.0</componentLicenseName>
-                            <componentName>klab.component.geospatial</componentName>
-                            <componentUsageRights>*</componentUsageRights>
-                            <componentVendorName>Integrated Modelling Partnership</componentVendorName>
-                            <componentVendorEmail>info@integratedmodelling.org</componentVendorEmail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
     </build>
     <properties>
@@ -68,6 +51,10 @@
         <plugin.version>${version}</plugin.version>
         <plugin.provider>klab</plugin.provider>
         <plugin.dependencies/>
+
+        <geotools.version>28.0</geotools.version>
+        <hortonmachine.version>0.10.8-SNAPSHOT</hortonmachine.version>
+        <junit-version>5.6.3</junit-version>
     </properties>
 
 
@@ -135,6 +122,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
             <groupId>com.konghq</groupId>
             <artifactId>unirest-java</artifactId>
@@ -145,6 +133,46 @@
             <groupId>com.github.javadev</groupId>
             <artifactId>underscore</artifactId>
             <version>1.68</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-coverage</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-geojson-core</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-shapefile</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-swing</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
