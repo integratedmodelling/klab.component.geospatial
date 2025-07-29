@@ -32,7 +32,7 @@ import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.FileSystemCacheBuilder;
 import org.integratedmodelling.klab.utilities.Utils;
 
-public class WCSManager {
+public class WCSServiceManager {
 
   public static final String WGS84_BOUNDING_BOX = "ows:WGS84BoundingBox";
   public static final String IDENTIFIER = "ows:Identifier";
@@ -71,14 +71,12 @@ public class WCSManager {
   private Cache<String, String> wcsCache =
       FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
 
-  /**
-   * TODO Unirest should be removed and normal HttpClient (or Utils.Http.Client) should
-   *  be used.
-   */
+  /** TODO Unirest should be removed and normal HttpClient (or Utils.Http.Client) should be used. */
   static {
     // Note: SSL verification is disabled for compatibility with some WCS services
-    // In a production environment, consider enabling SSL verification and properly
-    // configuring trusted certificates
+    // In production should probably enable SSL verification and properly
+    // configure trusted certificates, or provide a parameter to configure the service
+    // explicitly.
     Unirest.config().verifySsl(false);
   }
 
@@ -591,8 +589,8 @@ public class WCSManager {
     // in envelopes, projections etc.
     ServiceConfiguration.injectInstantiators();
 
-    WCSManager service =
-        new WCSManager("https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
+    WCSServiceManager service =
+        new WCSServiceManager("https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
 
     //    WCSManager service =
     //        new WCSManager("https://www.geo.euskadi.eus/WCS_KARTOGRAFIA",
@@ -614,7 +612,7 @@ public class WCSManager {
    * @param version the version of the WCS service
    */
   @SuppressWarnings("unchecked")
-  public WCSManager(String serviceUrl, Version version) {
+  public WCSServiceManager(String serviceUrl, Version version) {
     this.serviceUrl = serviceUrl;
     this.version = version;
 

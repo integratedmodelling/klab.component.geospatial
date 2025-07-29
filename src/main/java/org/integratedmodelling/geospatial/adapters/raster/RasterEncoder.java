@@ -119,6 +119,7 @@ public class RasterEncoder {
     var xx = xy.get(0);
     var yy = xy.get(1);
     long offset = 0;
+
     var filler = builder.buffer(Storage.DoubleBuffer.class, Data.SpaceFillingCurve.D2_XY);
     for (Geometry subscale : scale.without(Geometry.Dimension.Type.SPACE)) {
       var spaceScale = scale.at(subscale);
