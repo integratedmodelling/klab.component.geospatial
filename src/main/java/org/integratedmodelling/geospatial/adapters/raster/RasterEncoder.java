@@ -282,16 +282,21 @@ public class RasterEncoder {
 
         String method = metadata.get(RasterAdapter.INTERPOLATION_PARAM, String.class);
         if (method != null) {
-            if (method.equals("bilinear")) {
-                return new InterpolationBilinear();
-            } else if (method.equals("nearest")) {
-                return new InterpolationNearest();
-            } else if (method.equals("bicubic")) {
-                // TODO CHECK BITS
-                return new InterpolationBicubic(8);
-            } else if (method.equals("bicubic2")) {
-                // TODO CHECK BITS
-                return new InterpolationBicubic2(8);
+            switch (method) {
+                case "bilinear" -> {
+                    return new InterpolationBilinear();
+                }
+                case "nearest" -> {
+                    return new InterpolationNearest();
+                }
+                case "bicubic" -> {
+                    // TODO CHECK BITS
+                    return new InterpolationBicubic(8);
+                }
+                case "bicubic2" -> {
+                    // TODO CHECK BITS
+                    return new InterpolationBicubic2(8);
+                }
             }
         }
         return new InterpolationNearest();
