@@ -18,6 +18,7 @@ import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.Urn;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
 import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
@@ -42,7 +43,46 @@ import java.util.Map;
     name = "wcs",
     version = Version.CURRENT,
     type = Artifact.Type.NUMBER,
-    embeddable = true)
+    embeddable = true,
+    parameters = {
+      @Parameter(
+          name = "serviceUrl",
+          type = Artifact.Type.URL,
+          description = "Base URL of the WCS service"),
+      @Parameter(
+          name = "wcsIdentifier",
+          type = Artifact.Type.TEXT,
+          description = "Identifier of the WCS resource, including namespace when applicable"),
+      @Parameter(
+          name = "wcsVersion",
+          type = Artifact.Type.TEXT,
+          description = "The WCS version to use when connecting to the resource"),
+      @Parameter(
+          name = "transform",
+          type = Artifact.Type.TEXT,
+          description = "An optional expression to transform the result values",
+          urnParameter = true,
+          optional = true),
+      @Parameter(
+          name = "band",
+          type = Artifact.Type.NUMBER,
+          urnParameter = true,
+          description = "The band to extract from the result coverage. Default is band 0",
+          optional = true),
+      @Parameter(
+          name = "bandMixer",
+          type = Artifact.Type.TEXT,
+          description =
+              "Retrieve all bands and mix them to obtain the result based on this expression",
+          optional = true),
+      @Parameter(
+          name = "interpolation",
+          type = Artifact.Type.ENUM,
+          urnParameter = true,
+          enumValues = {"bicubic", "bilinear", "bicubic2", "nearest-neighbor"},
+          description = "An optional interpolation type to use when rescaling",
+          optional = true)
+    })
 public class WCSAdapter {
 
   static Map<String, WCSServiceManager> services = new HashMap<>();
@@ -106,9 +146,26 @@ public class WCSAdapter {
   }
 
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
-  public boolean validateImported(Resource resource) {
-
-    return false;
+  public Notification validateImported(Resource resource) {
+    try {
+      var serviceUrl = resource.getParameters().get("serviceUrl", String.class);
+      var version = Version.create(resource.getParameters().get("wcsVersion", String.class));
+      WCSServiceManager service = getService(serviceUrl, version);
+      if (service == null) {
+        return Notification.warning("Unable to connect to WCS service at " + serviceUrl);
+      }
+      var layer = service.getLayer(resource.getParameters().get("wcsIdentifier", String.class));
+      if (layer == null) {
+        return Notification.warning(
+            "Unable to find WCS layer "
+                + resource.getParameters().get("wcsIdentifier", String.class));
+      }
+      return Notification.info(
+          "WCS layer " + layer.getName() + " found in service.", Notification.Outcome.Success);
+    } catch (Throwable e) {
+      return Notification.error(
+          "Import caused an exception: " + e.getMessage(), e, Notification.Outcome.Failure);
+    }
   }
 
   public static File getAdjustedCoverage(String url, Geometry geometry) {
@@ -169,9 +226,9 @@ public class WCSAdapter {
       }
 
       coverageFile.deleteOnExit();
-//      if (Configuration.INSTANCE.isEchoEnabled()) {
-//        System.out.println("Data have arrived in " + coverageFile);
-//      }
+      //      if (Configuration.INSTANCE.isEchoEnabled()) {
+      //        System.out.println("Data have arrived in " + coverageFile);
+      //      }
 
       return coverageFile;
 
