@@ -5,6 +5,7 @@ import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.utils.RegionMap;
+import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.wcs.WCSServiceManager;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
@@ -64,6 +65,13 @@ import java.util.Map;
           urnParameter = true,
           optional = true),
       @Parameter(
+          name = "nodata",
+          type = Artifact.Type.NUMBER,
+          description =
+              "The value used as no-data throughout the raster. Overrides any specification in the original file",
+          urnParameter = true,
+          optional = true),
+      @Parameter(
           name = "band",
           type = Artifact.Type.NUMBER,
           urnParameter = true,
@@ -103,9 +111,17 @@ public class WCSAdapter {
     if (services.containsKey(key)) {
       return services.get(key);
     }
+
+    Logging.INSTANCE.info(
+        "Attempting to connect to WCS service at " + serviceUrl + " version " + version + " ...");
     WCSServiceManager ret = new WCSServiceManager(serviceUrl, version);
     if (ret != null) {
+      Logging.INSTANCE.info(
+          "Connected to WCS service at " + serviceUrl + " version " + version + ".");
       services.put(key, ret);
+    } else {
+      Logging.INSTANCE.info(
+          "Unable to connect to WCS service at " + serviceUrl + " version " + version + ".");
     }
     return ret;
   }
@@ -158,7 +174,9 @@ public class WCSAdapter {
       if (layer == null) {
         return Notification.warning(
             "Unable to find WCS layer "
-                + resource.getParameters().get("wcsIdentifier", String.class));
+                + resource.getParameters().get("wcsIdentifier", String.class)
+                + " out of "
+                + service.getLayers().size());
       }
       return Notification.info(
           "WCS layer " + layer.getName() + " found in service.", Notification.Outcome.Success);

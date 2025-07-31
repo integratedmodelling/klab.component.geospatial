@@ -1,7 +1,6 @@
 package org.integratedmodelling.geospatial.adapters.wcs;
 
 import com.github.underscore.lodash.U;
-import com.google.common.cache.Cache;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -29,7 +28,6 @@ import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projec
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.TemporalExtension;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.integratedmodelling.klab.utilities.FileSystemCacheBuilder;
 import org.integratedmodelling.klab.utilities.Utils;
 
 public class WCSServiceManager {
@@ -68,8 +66,8 @@ public class WCSServiceManager {
   May use a more sophisticated strategy later. Should have a timeout per entry and a maintenance thread.
   See https://www.javacodegeeks.com/2013/12/extending-guava-caches-to-overflow-to-disk.html
    */
-  private Cache<String, String> wcsCache =
-      FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
+  private Map<String, String> wcsCache = new HashMap<>();
+//      FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
 
   /** TODO Unirest should be removed and normal HttpClient (or Utils.Http.Client) should be used. */
   static {
@@ -288,7 +286,7 @@ public class WCSServiceManager {
           Map<?, ?> coverage = null;
 
           // Check if we have a cached response
-          String cached = wcsCache.getIfPresent(url.toString());
+          String cached = wcsCache.get/*IfPresent*/(url.toString());
           if (cached != null) {
             Map<?, ?> map = Utils.Json.parseObject(cached, Map.class);
             coverage = map;
@@ -639,7 +637,7 @@ public class WCSServiceManager {
 
         // Hash the content to check if it has changed since last request
         String hash = Utils.Strings.hash(content);
-        String prev = wcsCache.getIfPresent(url);
+        String prev = wcsCache.get/*IfPresent*/(url);
         boolean skipRefresh = (prev != null && hash.equals(prev));
 
         if (skipRefresh) {
