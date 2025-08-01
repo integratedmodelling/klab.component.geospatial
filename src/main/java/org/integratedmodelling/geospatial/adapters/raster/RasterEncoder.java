@@ -47,6 +47,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import javax.media.jai.*;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
+import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
@@ -97,19 +98,19 @@ public class RasterEncoder {
         Binding binding = null;
         Script transformation = null;
 
-        if (resource.getParameters().get("transform") != null
-                && !resource.getParameters().get("transform").toString().trim().isEmpty()) {
+        if (resource.getParameters().get(RasterAdapter.TRANSFORM_PARAM) != null
+                && !resource.getParameters().get(RasterAdapter.TRANSFORM_PARAM).toString().trim().isEmpty()) {
             binding = new Binding();
             shell = new GroovyShell(binding);
-            transformation = shell.parse(resource.getParameters().get("transform").toString());
+            transformation = shell.parse(resource.getParameters().get(RasterAdapter.TRANSFORM_PARAM).toString());
         }
 
         BandMixing.Operation bandMixer = null;
-        if (resource.getParameters().contains("bandmixer")) {
+        if (resource.getParameters().contains(RasterAdapter.BANDMIXER_PARAM)) {
             try {
-                bandMixer = BandMixing.Operation.valueOf(resource.getParameters().get("bandmixer", String.class));
+                bandMixer = BandMixing.Operation.valueOf(resource.getParameters().get(RasterAdapter.BANDMIXER_PARAM, String.class));
             } catch (IllegalArgumentException e) {
-                builder.notification(Notification.error("Unsupported band mixing operation " + resource.getParameters().get("bandmixer", String.class)));
+                builder.notification(Notification.error("Unsupported band mixing operation " + resource.getParameters().get(RasterAdapter.BANDMIXER_PARAM, String.class)));
             }
         }
 

@@ -34,6 +34,9 @@ public class RasterAdapter {
     public static final String NODATA_PARAM = "noData";
     public static final String BAND_PARAM = "band";
     public static final String INTERPOLATION_PARAM = "interpolation";
+    public static final String TRANSFORM_PARAM = "transform";
+    public static final String BANDMIXER_PARAM = "bandmixer";
+
 
     /**
      * All recognized primary file extensions.
@@ -45,12 +48,6 @@ public class RasterAdapter {
      */
     public static Set<String> secondaryFileExtensions =
             Set.of("tfw", "prj", "tif.ovr", "tif.aux.xml", "txt", "pdf");
-
-    /**
-     * All the permitted band mixing operations.
-     */
-    public static Set<String> bandMixingOperations =
-            Set.of("max_value", "min_value", "avg_value", "max_band", "min_band");
 
     /**
      * Interpolation type for metadata
@@ -81,5 +78,11 @@ public class RasterAdapter {
             fileExtensions = {"tif", "tiff"})
     public static String importGeotiff() {
         return null;
+    }
+
+    @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
+    public Notification validateImported(Resource resource) {
+        // TODO
+        return Notification.info("Raster imported.", Notification.Outcome.Success);
     }
 }
