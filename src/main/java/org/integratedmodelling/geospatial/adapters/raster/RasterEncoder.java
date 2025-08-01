@@ -87,7 +87,7 @@ public class RasterEncoder {
         var space = scale.getSpace();
         int band = 0;
         if (urnParameters.containsKey(RasterAdapter.BAND_PARAM)) {
-            band = Integer.parseInt(urnParameters.get("band"));
+            band = Integer.parseInt(urnParameters.get(RasterAdapter.BAND_PARAM));
         } else {
             resource.getParameters().get(RasterAdapter.BAND_PARAM, 0);
         }
