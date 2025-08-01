@@ -25,8 +25,15 @@ import java.util.Set;
         version = Version.CURRENT,
         embeddable = true,
         parameters = {
-                @Parameter(name = "collection", type = Artifact.Type.TEXT, description = "The URL pointing to the STAC collection file that contains the resource dataset."),
-                @Parameter(name = "asset", type = Artifact.Type.TEXT, optional = true, description = "The asset that is going to be retrieved from the items. Left it blank when the information is stored in the feature."),
+            @Parameter(
+                name = "collection",
+                type = Artifact.Type.URL,
+                description = "The URL pointing to the STAC collection file that contains the resource dataset."),
+            @Parameter(
+                name = "asset",
+                type = Artifact.Type.TEXT,
+                optional = true,
+                description = "The asset that is going to be retrieved from the items. Left it blank when the information is stored in the feature."),
                 // TODO manage bands
         })
 public class STACAdapter {
