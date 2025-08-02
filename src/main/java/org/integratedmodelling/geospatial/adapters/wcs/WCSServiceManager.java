@@ -14,6 +14,7 @@ import org.apache.commons.jxpath.JXPathContext;
 import org.integratedmodelling.common.authentication.Authentication;
 import org.integratedmodelling.common.authentication.Authorization;
 import org.integratedmodelling.common.logging.Logging;
+import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.authentication.ExternalAuthenticationCredentials;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.data.mediation.NumericRange;
@@ -67,7 +68,8 @@ public class WCSServiceManager {
   See https://www.javacodegeeks.com/2013/12/extending-guava-caches-to-overflow-to-disk.html
    */
   private Map<String, String> wcsCache = new HashMap<>();
-//      FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
+
+  //      FileSystemCacheBuilder.newBuilder().maximumSize(300L).softValues().build();
 
   /** TODO Unirest should be removed and normal HttpClient (or Utils.Http.Client) should be used. */
   static {
@@ -286,7 +288,7 @@ public class WCSServiceManager {
           Map<?, ?> coverage = null;
 
           // Check if we have a cached response
-          String cached = wcsCache.get/*IfPresent*/(url.toString());
+          String cached = wcsCache.get /*IfPresent*/(url.toString());
           if (cached != null) {
             Map<?, ?> map = Utils.Json.parseObject(cached, Map.class);
             coverage = map;
@@ -588,7 +590,8 @@ public class WCSServiceManager {
     ServiceConfiguration.injectInstantiators();
 
     WCSServiceManager service =
-        new WCSServiceManager("https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
+        new WCSServiceManager(
+            "https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
 
     //    WCSManager service =
     //        new WCSManager("https://www.geo.euskadi.eus/WCS_KARTOGRAFIA",
@@ -637,7 +640,7 @@ public class WCSServiceManager {
 
         // Hash the content to check if it has changed since last request
         String hash = Utils.Strings.hash(content);
-        String prev = wcsCache.get/*IfPresent*/(url);
+        String prev = wcsCache.get /*IfPresent*/(url);
         boolean skipRefresh = (prev != null && hash.equals(prev));
 
         if (skipRefresh) {
@@ -763,7 +766,10 @@ public class WCSServiceManager {
   }
 
   public URL buildRetrieveUrl(
-      WCSLayer layer, Version version, Geometry geometry, String interpolation) {
+      WCSLayer layer,
+      Version version,
+      Geometry geometry,
+      RasterAdapter.Interpolation interpolation) {
 
     var space = geometry.dimension(Geometry.Dimension.Type.SPACE);
     URL url = null;
@@ -902,7 +908,7 @@ public class WCSServiceManager {
      * ACHTUNG this is a 2.0 only request
      */
     if (interpolation != null) {
-      s += "&interpolation=" + interpolation;
+      s += "&interpolation=" + interpolation.field;
     }
 
     try {

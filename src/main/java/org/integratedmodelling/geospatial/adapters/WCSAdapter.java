@@ -1,15 +1,19 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import com.google.common.cache.*;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.integratedmodelling.common.logging.Logging;
+import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.wcs.WCSServiceManager;
+import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
+import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryImpl;
@@ -24,6 +28,7 @@ import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdap
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
+import org.opengis.coverage.grid.GridCoverage;
 
 import java.io.File;
 import java.io.InputStream;
@@ -31,10 +36,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
 /**
- * Handles "klab:random:...." URNs. Produces various types of random data, objects, or events. The
- * namespace (third field of the URN) selects the type of object:
+ * WCS layer adapter. Keeps a size-bound cache of downloaded TIFFs to optimize transfers.
  *
  * <p>WCS is service-bound so it's embeddable.
  *
@@ -95,7 +101,26 @@ public class WCSAdapter {
 
   static Map<String, WCSServiceManager> services = new HashMap<>();
 
-  public WCSAdapter() {}
+  private long maxCachedMBytes = 100;
+  private final LoadingCache<String, File> fileCache;
+
+  public WCSAdapter() {
+    // TODO read adapter properties (API to come) and reset maxCachedBytes if needed
+    this.fileCache =
+        CacheBuilder.newBuilder()
+            .maximumWeight(maxCachedMBytes)
+            .weigher((Weigher<String, File>) (key, value) -> (int) (value.length() / 1048576L))
+            .removalListener(notification -> Utils.Files.deleteQuietly(notification.getValue()))
+            .build(
+                CacheLoader.asyncReloading(
+                    new CacheLoader<>() {
+                      @Override
+                      public File load(String key) throws Exception {
+                        return null;
+                      }
+                    },
+                    Executors.newSingleThreadExecutor()));
+  }
 
   /**
    * Get the service handler for the passed service URL and version.
@@ -146,13 +171,15 @@ public class WCSAdapter {
             Version.create(resource.getParameters().get("wcsVersion", String.class)));
     var layer = service.getLayer(resource.getParameters().get("wcsIdentifier", String.class));
     if (layer != null) {
-      //      encoder.encodeFromCoverage(
-      //          resource,
-      //          urnParameters,
-      //          getCoverage(layer, resource, geometry, interpolation),
-      //          geometry,
-      //          builder,
-      //          scope);
+      var parameters = Utils.Resources.overrideParameters(resource, urn);
+      RasterEncoder.INSTANCE.encodeFromCoverage(
+          resource,
+          parameters,
+          getCoverage(layer, service, observable, parameters, geometry),
+          geometry,
+          builder,
+          observable,
+          scope);
     } else {
       builder.notification(
           Notification.error(
@@ -183,6 +210,46 @@ public class WCSAdapter {
     } catch (Throwable e) {
       return Notification.error(
           "Import caused an exception: " + e.getMessage(), e, Notification.Outcome.Failure);
+    }
+  }
+
+  private GridCoverage getCoverage(
+      WCSServiceManager.WCSLayer layer,
+      WCSServiceManager service,
+      Observable observable,
+      Parameters<String> parameters,
+      Geometry geometry) {
+
+    File coverageFile = getCachedFile(layer, geometry);
+
+    var interpolation = RasterAdapter.Interpolation.getDefaultForType(observable);
+    if (parameters.containsKey(RasterAdapter.INTERPOLATION_PARAM)) {
+      interpolation =
+          RasterAdapter.Interpolation.fromField(
+              parameters.get(RasterAdapter.INTERPOLATION_PARAM, String.class));
+    }
+    if (!coverageFile.exists()) {
+
+      // forcing v1.0.0 for now, while I figure out the pain of WCS requests
+      URL getCov =
+          service.buildRetrieveUrl(layer, Version.create("1.0.0"), geometry, interpolation);
+
+      try (InputStream input = getCov.openStream()) {
+        coverageFile = getAdjustedCoverage(input, geometry);
+      } catch (Throwable e) {
+        throw new KlabIOException(e);
+      }
+    }
+    return RasterEncoder.INSTANCE.readCoverage(coverageFile);
+  }
+
+  private File getCachedFile(WCSServiceManager.WCSLayer layer, Geometry geometry) {
+    var key = layer.getIdentifier() + "__" + geometry.key();
+    try {
+      return fileCache.get(key);
+    } catch (ExecutionException e) {
+      // shouldn't happen
+      throw new KlabInternalErrorException(e);
     }
   }
 
