@@ -6,10 +6,14 @@ import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.utils.RegionMap;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.wcs.WCSServiceManager;
+import org.integratedmodelling.klab.api.collections.Pair;
 import org.integratedmodelling.klab.api.collections.Parameters;
+import org.integratedmodelling.klab.api.collections.Triple;
+import org.integratedmodelling.klab.api.configuration.Configuration;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
@@ -26,6 +30,7 @@ import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
 import org.opengis.coverage.grid.GridCoverage;
@@ -34,13 +39,17 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * WCS layer adapter. Keeps a size-bound cache of downloaded TIFFs to optimize transfers.
+ * WCS layer adapter. Keeps a size-bound cache of downloaded TIFFs to optimize transfers. NOTE: the
+ * cache only works if the geometry asked for is the same object, so it should be instantiated using
+ * {@link GeometryRepository} and not directly.
  *
  * <p>WCS is service-bound so it's embeddable.
  *
@@ -100,26 +109,54 @@ import java.util.concurrent.Executors;
 public class WCSAdapter {
 
   static Map<String, WCSServiceManager> services = new HashMap<>();
+  private final File adapterCacheDirectory;
+  private final Map<String, File> filenames = new HashMap<>();
 
   private long maxCachedMBytes = 100;
-  private final LoadingCache<String, File> fileCache;
+  private final LoadingCache<
+          Triple<WCSServiceManager.WCSLayer, Geometry, RasterAdapter.Interpolation>, File>
+      fileCache;
+  private AtomicInteger cacheHits = new AtomicInteger();
 
   public WCSAdapter() {
-    // TODO read adapter properties (API to come) and reset maxCachedBytes if needed
+    this.adapterCacheDirectory = Configuration.INSTANCE.getTemporaryDataPath();
+    // TODO read adapter properties (API to come) and reset maxCachedMBytes and cache dir if needed
+
     this.fileCache =
         CacheBuilder.newBuilder()
             .maximumWeight(maxCachedMBytes)
-            .weigher((Weigher<String, File>) (key, value) -> (int) (value.length() / 1048576L))
-            .removalListener(notification -> Utils.Files.deleteQuietly(notification.getValue()))
+            .concurrencyLevel(1)
+            .weigher(
+                (Weigher<
+                        Triple<WCSServiceManager.WCSLayer, Geometry, RasterAdapter.Interpolation>,
+                        File>)
+                    (key, value) -> (int) (value.length() / 1048576L))
+            .removalListener(
+                notification -> {
+                  Utils.Files.deleteQuietly(notification.getValue());
+                })
             .build(
-                CacheLoader.asyncReloading(
-                    new CacheLoader<>() {
-                      @Override
-                      public File load(String key) throws Exception {
-                        return null;
-                      }
-                    },
-                    Executors.newSingleThreadExecutor()));
+                new CacheLoader<>() {
+                  @Override
+                  public File load(
+                      Triple<WCSServiceManager.WCSLayer, Geometry, RasterAdapter.Interpolation> key)
+                      throws Exception {
+
+                    // forcing v1.0.0 for now, while I figure out the pain of WCS requests
+                    URL getCov =
+                        key.getFirst()
+                            .buildRetrieveUrl(
+                                Version.create("1.0.0"), key.getSecond(), key.getThird());
+
+                    File ret = null;
+                    try (InputStream input = getCov.openStream()) {
+                      ret = getAdjustedCoverage(input, key.getSecond());
+                    } catch (Throwable e) {
+                      throw new KlabIOException(e);
+                    }
+                    return ret;
+                  }
+                });
   }
 
   /**
@@ -140,7 +177,7 @@ public class WCSAdapter {
     Logging.INSTANCE.info(
         "Attempting to connect to WCS service at " + serviceUrl + " version " + version + " ...");
     WCSServiceManager ret = new WCSServiceManager(serviceUrl, version);
-    if (ret != null) {
+    if (!ret.hasErrors()) {
       Logging.INSTANCE.info(
           "Connected to WCS service at " + serviceUrl + " version " + version + ".");
       services.put(key, ret);
@@ -160,26 +197,24 @@ public class WCSAdapter {
       Observable observable,
       Scope scope) {
 
-    //    String interpolation =
-    //        urn.getParameters()
-    //            .get("interpolation", resource.getParameters().get("interpolation",
-    // String.class));
-
     WCSServiceManager service =
         getService(
             resource.getParameters().get("serviceUrl", String.class),
             Version.create(resource.getParameters().get("wcsVersion", String.class)));
     var layer = service.getLayer(resource.getParameters().get("wcsIdentifier", String.class));
+
     if (layer != null) {
       var parameters = Utils.Resources.overrideParameters(resource, urn);
-      RasterEncoder.INSTANCE.encodeFromCoverage(
-          resource,
-          parameters,
-          getCoverage(layer, service, observable, parameters, geometry),
-          geometry,
-          builder,
-          observable,
-          scope);
+      var coverage = getCoverage(layer, service, observable, parameters, geometry);
+      if (coverage == null) {
+        builder.notification(
+            Notification.error(
+                "Cannot build coverage for WCS layer "
+                    + resource.getParameters().get("wcsIdentifier", String.class)));
+      } else {
+        RasterEncoder.INSTANCE.encodeFromCoverage(
+            resource, parameters, coverage, geometry, builder, observable, scope);
+      }
     } else {
       builder.notification(
           Notification.error(
@@ -220,33 +255,22 @@ public class WCSAdapter {
       Parameters<String> parameters,
       Geometry geometry) {
 
-    File coverageFile = getCachedFile(layer, geometry);
-
     var interpolation = RasterAdapter.Interpolation.getDefaultForType(observable);
     if (parameters.containsKey(RasterAdapter.INTERPOLATION_PARAM)) {
       interpolation =
           RasterAdapter.Interpolation.fromField(
               parameters.get(RasterAdapter.INTERPOLATION_PARAM, String.class));
     }
-    if (!coverageFile.exists()) {
-
-      // forcing v1.0.0 for now, while I figure out the pain of WCS requests
-      URL getCov =
-          service.buildRetrieveUrl(layer, Version.create("1.0.0"), geometry, interpolation);
-
-      try (InputStream input = getCov.openStream()) {
-        coverageFile = getAdjustedCoverage(input, geometry);
-      } catch (Throwable e) {
-        throw new KlabIOException(e);
-      }
-    }
-    return RasterEncoder.INSTANCE.readCoverage(coverageFile);
+    return RasterEncoder.INSTANCE.readCoverage(getCachedFile(layer, geometry, interpolation));
   }
 
-  private File getCachedFile(WCSServiceManager.WCSLayer layer, Geometry geometry) {
+  private File getCachedFile(
+      WCSServiceManager.WCSLayer layer,
+      Geometry geometry,
+      RasterAdapter.Interpolation interpolation) {
     var key = layer.getIdentifier() + "__" + geometry.key();
     try {
-      return fileCache.get(key);
+      return fileCache.get(Triple.of(layer, geometry, interpolation));
     } catch (ExecutionException e) {
       // shouldn't happen
       throw new KlabInternalErrorException(e);
@@ -267,7 +291,7 @@ public class WCSAdapter {
     try {
 
       File coverageFile = File.createTempFile("geo", ".tiff");
-      Files.copy(input, coverageFile.toPath());
+      Files.copy(input, coverageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
       var space = geometry.dimension(Geometry.Dimension.Type.SPACE);
       String rcrs =
@@ -311,14 +335,41 @@ public class WCSAdapter {
       }
 
       coverageFile.deleteOnExit();
-      //      if (Configuration.INSTANCE.isEchoEnabled()) {
-      //        System.out.println("Data have arrived in " + coverageFile);
-      //      }
 
       return coverageFile;
 
     } catch (Throwable e) {
       throw new KlabIOException(e);
+    }
+  }
+
+  public static void main(String[] args) {
+
+    String centralColombia =
+        "τ0(1){ttype=LOGICAL,period=[1609459200000 1640995200000],tscope=1.0,"
+            + "tunit=YEAR}S2(934,631){bbox=[-75.2281407807369 -72.67107290964314 3.5641500380320963 5"
+            + ".302943221927137],"
+            + "shape"
+            + "=00000000030000000100000005C0522AF2DBCA0987400C8361185B1480C052CE99DBCA0987400C8361185B1480C052CE99DBCA098740153636BF7AE340C0522AF2DBCA098740153636BF7AE340C0522AF2DBCA0987400C8361185B1480,proj=EPSG:4326}";
+
+    ServiceConfiguration.injectInstantiators();
+
+    var adapter = new WCSAdapter();
+    var service =
+        adapter.getService(
+            "https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
+    var layer = service.getLayer("im-data-global-geography__elevation-global-90m");
+
+    if (layer != null) {
+      var coverage =
+          adapter.getCoverage(
+              layer,
+              service,
+              Observable.number("elevation"),
+              Parameters.create(),
+              GeometryRepository.INSTANCE.get(centralColombia, Geometry.class));
+
+      System.out.println(coverage);
     }
   }
 }

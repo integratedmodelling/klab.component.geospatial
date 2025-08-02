@@ -235,6 +235,13 @@ public class WCSServiceManager {
           : identifier;
     }
 
+    public URL buildRetrieveUrl(
+            Version version,
+            Geometry geometry,
+            RasterAdapter.Interpolation interpolation) {
+      return WCSServiceManager.this.buildRetrieveUrl(this, version, geometry, interpolation);
+    }
+
     public Envelope getWgs84envelope() {
       return wgs84envelope;
     }

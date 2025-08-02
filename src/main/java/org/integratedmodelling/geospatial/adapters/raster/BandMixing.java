@@ -14,7 +14,7 @@ public class BandMixing {
 
     private final String label;
 
-    private Operation(String label) {
+    Operation(String label) {
       this.label = label;
     }
 
