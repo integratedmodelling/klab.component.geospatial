@@ -354,10 +354,19 @@ public class WCSAdapter {
 
     ServiceConfiguration.injectInstantiators();
 
+    // TODO check this strange behavior
+    //    var centralColombiaGeometry = GeometryRepository.INSTANCE.get(centralColombia,
+    // Geometry.class);
+    //    System.out.println(
+    //        Geometry.create(centralColombia).key()
+    //            + " >>>> "
+    //            + Geometry.create(centralColombia).key()
+    //            + " >>>> "
+    //            + centralColombiaGeometry.key());
+
     var adapter = new WCSAdapter();
     var service =
-        adapter.getService(
-            "https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
+        getService("https://integratedmodelling.org/geoserver/ows", Version.create("2.0.1"));
     var layer = service.getLayer("im-data-global-geography__elevation-global-90m");
 
     if (layer != null) {
