@@ -1,6 +1,8 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import kong.unirest.json.JSONObject;
 import org.integratedmodelling.geospatial.adapters.stac.STACManager;
+import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
@@ -12,6 +14,7 @@ import org.integratedmodelling.klab.api.knowledge.Urn;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
+import org.integratedmodelling.klab.api.services.resources.impl.ParameterImpl;
 
 import java.util.Set;
 
@@ -38,6 +41,13 @@ import java.util.Set;
         })
 public class STACAdapter {
 
+    final private static Set<String> SUPPORTED_RASTER_MEDIA_TYPE = Set.of("image/tiff;application=geotiff", "image/vnd.stac.geotiff",
+            "image/tiff;application=geotiff;profile=cloud-optimized", "image/vnd.stac.geotiff;profile=cloud-optimized",
+            "image/vnd.stac.geotiff;cloud-optimized=true");
+
+    final private static Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json");
+
+
     public STACAdapter() {
     }
 
@@ -57,8 +67,35 @@ public class STACAdapter {
     public Artifact.Type getType(Resource resourceUrn) {
         String collection = resourceUrn.getParameters().get("collection", String.class);
         var collectionData = STACManager.requestMetadata(collection, "collection");
+        if (!resourceUrn.getParameters().contains("asset") || resourceUrn.getParameters().get("asset", String.class).isEmpty()) {
+            // TODO get the assets from the links
+            throw new KlabUnimplementedException("STAC adapter: can't handle static catalogs");
+        }
+        String assetId = resourceUrn.getParameters().get("asset", String.class);
+        JSONObject itemsData = null;
+        try {
+            itemsData = STACManager.getItems(collectionData);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        var assetsData = itemsData.getJSONArray("features").getJSONObject(0).getJSONObject("assets");
+        if (!assetsData.has(assetId)) {
+            throw new KlabUnimplementedException("STAC adapter: can't find " + assetId);
+        }
+        String assetType = assetsData.getJSONObject(assetId).getString("type");
 
-        throw new KlabUnimplementedException("random adapter: can't handle URN " + resourceUrn);
+        if (SUPPORTED_RASTER_MEDIA_TYPE.contains(assetType.toLowerCase().replaceAll(" ", ""))) {
+            return Artifact.Type.NUMBER;
+        }
+        // TODO other types
+        throw new KlabUnimplementedException("STAC adapter: can't handle this type " + assetType);
+    }
+
+    public static void main(String[] args) {
+        Parameters params = Parameters.create("collection", "https://planetarycomputer.microsoft.com/api/stac/v1/collections/io-lulc-annual-v02", "asset", "data");
+        Resource res = Resource.builder("klab:raster:test:colombia").withParameters(params).build();
+        var type = new STACAdapter().getType(res);
+        System.out.println(type);
     }
 
     final static Set<String> requiredFieldsOfCollection = Set.of("type", "stac_version", "id", "description", "license", "extent", "links");

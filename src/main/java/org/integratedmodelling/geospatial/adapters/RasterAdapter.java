@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.adapters;
 
-import oms3.annotations.In;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
