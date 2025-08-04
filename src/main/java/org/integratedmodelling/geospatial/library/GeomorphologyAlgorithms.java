@@ -19,6 +19,7 @@ import org.integratedmodelling.klab.api.services.runtime.extension.Library;
         Contextualizers that ....""")
 public class GeomorphologyAlgorithms {
 
+  // FIXME this only as an example, copied from klab.component.generators
   @KlabFunction(
       name = "slope",
       description =
