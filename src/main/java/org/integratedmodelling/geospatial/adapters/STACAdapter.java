@@ -84,8 +84,12 @@ public class STACAdapter {
         }
         String assetType = assetsData.getJSONObject(assetId).getString("type");
 
+        // TODO check if these are the correct types
         if (SUPPORTED_RASTER_MEDIA_TYPE.contains(assetType.toLowerCase().replaceAll(" ", ""))) {
             return Artifact.Type.NUMBER;
+        }
+        if (SUPPORTED_VECTOR_MEDIA_TYPE.contains(assetType.toLowerCase().replaceAll(" ", ""))) {
+            return Artifact.Type.GEOMETRY;
         }
         // TODO other types
         throw new KlabUnimplementedException("STAC adapter: can't handle this type " + assetType);
