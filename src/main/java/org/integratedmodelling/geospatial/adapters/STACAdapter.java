@@ -91,13 +91,6 @@ public class STACAdapter {
         throw new KlabUnimplementedException("STAC adapter: can't handle this type " + assetType);
     }
 
-    public static void main(String[] args) {
-        Parameters params = Parameters.create("collection", "https://planetarycomputer.microsoft.com/api/stac/v1/collections/io-lulc-annual-v02", "asset", "data");
-        Resource res = Resource.builder("klab:raster:test:colombia").withParameters(params).build();
-        var type = new STACAdapter().getType(res);
-        System.out.println(type);
-    }
-
     final static Set<String> requiredFieldsOfCollection = Set.of("type", "stac_version", "id", "description", "license", "extent", "links");
 
     @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
