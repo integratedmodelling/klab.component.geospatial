@@ -20,20 +20,19 @@ import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.knowledge.Artifact;
-import org.integratedmodelling.klab.api.knowledge.Observable;
-import org.integratedmodelling.klab.api.knowledge.Resource;
-import org.integratedmodelling.klab.api.knowledge.Urn;
+import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.resources.ResourceSet;
+import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.opengis.coverage.grid.GridCoverage;
 
 import java.util.Comparator;
 import java.util.Date;
@@ -232,6 +231,26 @@ public class STACAdapter {
             return false;
         }
         return true;
+    }
+
+    @Importer(schema = "stac.import",
+            knowledgeClass = KlabAsset.KnowledgeClass.RESOURCE,
+            description = "Imports a STAC resource",
+            properties = {
+                    @KlabFunction.Argument(
+                            name = "collection",
+                            type = Artifact.Type.URL,
+                            description = "URL of the collection."),
+                    @KlabFunction.Argument(
+                            name = "asset",
+                            type = Artifact.Type.TEXT,
+                            optional = true,
+                            description = "Asset ID."),
+                    //
+            })
+    public static ResourceSet importSTAC() {
+        // TODO
+        return null;
     }
 
 }
