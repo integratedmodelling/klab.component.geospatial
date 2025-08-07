@@ -212,8 +212,16 @@ public class WCSAdapter {
                 "Cannot build coverage for WCS layer "
                     + resource.getParameters().get("wcsIdentifier", String.class)));
       } else {
-        RasterEncoder.INSTANCE.encodeFromCoverage(
-            resource, parameters, coverage, geometry, builder, observable, scope);
+        try {
+          RasterEncoder.INSTANCE.encodeFromCoverage(
+              resource, parameters, coverage, geometry, builder, observable, scope);
+        } catch (Throwable e) {
+          builder.notification(
+              Notification.error(
+                  "WCS encoding failed with exception: " + e.getMessage(),
+                  e,
+                  Notification.Outcome.Failure));
+        }
       }
     } else {
       builder.notification(
