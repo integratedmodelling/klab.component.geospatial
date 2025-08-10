@@ -4,6 +4,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
+import oms3.dsl.Param;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
@@ -22,19 +23,22 @@ import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryImpl;
-import org.integratedmodelling.klab.api.knowledge.Artifact;
-import org.integratedmodelling.klab.api.knowledge.Observable;
-import org.integratedmodelling.klab.api.knowledge.Resource;
-import org.integratedmodelling.klab.api.knowledge.Urn;
+import org.integratedmodelling.klab.api.knowledge.*;
+import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
+import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.KlabService;
+import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
+import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
 import org.opengis.coverage.grid.GridCoverage;
+import org.springframework.http.MediaType;
 
 import java.io.File;
 import java.io.InputStream;
@@ -229,6 +233,34 @@ public class WCSAdapter {
               "Problems accessing WCS layer "
                   + resource.getParameters().get("wcsIdentifier", String.class)));
     }
+  }
+
+  @Exporter(
+      schema = "wcs.export.html",
+      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
+      mediaType = MediaType.TEXT_HTML_VALUE,
+      // TODO add properties for size, viewport etc
+      description = "Export an observation as HTML page visualizing it")
+  public InputStream exportHtml(
+      Resource resource,
+      Observation observation,
+      ContextScope scope,
+      BaseService service,
+      Parameters<String> parameters) {
+    /*
+     * TODO if the URN is not already associated to a geotiff cached from a previous request, export it as a geotiff
+     *  in temp storage and cache it
+     */
+
+    /*
+    TODO submit the geotiff for publishing through the generic asset publishing mechanism and store the URL
+     */
+
+    /*
+     * TODO stream the leaflet template with the URL returned by the service and any data from the observation
+     */
+
+    return null;
   }
 
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
