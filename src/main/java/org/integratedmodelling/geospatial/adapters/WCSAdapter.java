@@ -64,6 +64,11 @@ import java.util.concurrent.atomic.AtomicInteger;
     version = Version.CURRENT,
     type = Artifact.Type.NUMBER,
     embeddable = true,
+    fillCurve = Data.SpaceFillingCurve.D2_XY,
+    splits =
+        1, // while testing. Then we can split requests to multiple calls or servers if resource
+    // supports replication
+    minSizeForSplitting = 1000000L, // TODO for now; could become configurable
     parameters = {
       @Parameter(
           name = "serviceUrl",
