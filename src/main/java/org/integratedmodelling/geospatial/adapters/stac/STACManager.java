@@ -1,8 +1,5 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
-import kong.unirest.HttpResponse;
-import kong.unirest.JsonNode;
-import kong.unirest.Unirest;
 import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -17,7 +14,6 @@ import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
-import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.Resource;
@@ -36,17 +32,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class STACManager {
-    public static JSONObject requestMetadata(String collectionUrl, String type) {
-        HttpResponse<JsonNode> response = Unirest.get(collectionUrl).asJson();
-        if (!response.isSuccess() || response.getBody() == null) {
-            throw new KlabResourceAccessException("Cannot access the " + type + " at " + collectionUrl);
-        }
-        JSONObject data = response.getBody().getObject();
-        if (!data.getString("type").equalsIgnoreCase(type)) {
-            throw new KlabResourceAccessException("Data at " + collectionUrl + " is not a valid STAC " + type);
-        }
-        return response.getBody().getObject();
-    }
 
     // https://github.com/radiantearth/stac-spec/blob/master/best-practices.md#common-media-types-in-stac
     final private static Set<String> SUPPORTED_MEDIA_TYPE = Set.of("image/tiff;application=geotiff", "image/vnd.stac.geotiff",
@@ -80,34 +65,21 @@ public class STACManager {
         return Artifact.Type.VOID;
     }
 
-    public static JSONObject getItems(JSONObject collection) throws Throwable {
-        var links = collection.getJSONArray("links");
-        JSONObject itemsObject = (JSONObject) links.toList().stream().filter(link -> ((JSONObject)link).getString("rel").equalsIgnoreCase("items"))
-                .findFirst().orElseThrow(() -> new KlabResourceAccessException("STAC collection does not contain a link to the items object."));
-        String itemsHref = itemsObject.getString("href");
-
-        return requestMetadata(itemsHref, "FeatureCollection");
-    }
-
-    public static Set<String> readAssetNames(JSONObject assets) {
-        return Set.of(JSONObject.getNames(assets));
-    }
-
-    public static JSONObject getAsset(JSONObject assetMap, String assetId) {
-        return assetMap.getJSONObject(assetId);
-    }
-
     public static GridCoverage2D getGridCoverage2D(Resource resource, Data.Builder builder, Geometry geometry) throws Exception {
         String collectionUrl = resource.getParameters().get("collection", String.class);
-        JSONObject collectionData = STACManager.requestMetadata(collectionUrl, "collection");
+        JSONObject collectionData = STACParser.requestMetadata(collectionUrl, "collection");
         String collectionId = collectionData.getString("id");
-        String catalogUrl = STACUtils.getCatalogUrl(collectionUrl, collectionId, collectionData);
-        JSONObject catalogData = STACManager.requestMetadata(catalogUrl, "catalog");
+        String catalogUrl = STACParser.getCatalogUrl(collectionUrl, collectionId, collectionData);
+        JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
         String assetId = resource.getParameters().get("asset", String.class);
 
-        boolean hasSearchOption = STACUtils.containsLinkTo(catalogData, "search");
+        boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
         if (!hasSearchOption) {
-            throw new KlabUnimplementedException("Static catalogs are not implemented yet");
+            try {
+                var items = STACParser.getFeaturesFromStaticCollection(collectionData);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
         }
 
         var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow();

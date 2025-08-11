@@ -2,28 +2,15 @@ package org.integratedmodelling.geospatial.adapters;
 
 import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.hortonmachine.gears.io.stac.HMStacCollection;
-import org.hortonmachine.gears.io.stac.HMStacItem;
-import org.hortonmachine.gears.io.stac.HMStacManager;
-import org.hortonmachine.gears.libs.modules.HMRaster;
-import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
-import org.hortonmachine.gears.utils.RegionMap;
-import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.STACManager;
-import org.integratedmodelling.geospatial.adapters.stac.STACUtils;
+import org.integratedmodelling.geospatial.adapters.stac.STACParser;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
-import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
-import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.ResourceSet;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
@@ -31,14 +18,8 @@ import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
-import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
-import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * STAC is service-bound so it can be embedded in a runtime.
@@ -95,7 +76,7 @@ public class STACAdapter {
     @ResourceAdapter.Type
     public Artifact.Type getType(Resource resourceUrn) {
         String collection = resourceUrn.getParameters().get("collection", String.class);
-        var collectionData = STACManager.requestMetadata(collection, "collection");
+        var collectionData = STACParser.requestMetadata(collection, "collection");
         if (!resourceUrn.getParameters().contains("asset") || resourceUrn.getParameters().get("asset", String.class).isEmpty()) {
             // TODO get the assets from the links
             throw new KlabUnimplementedException("STAC adapter: can't handle static catalogs");
@@ -103,7 +84,7 @@ public class STACAdapter {
         String assetId = resourceUrn.getParameters().get("asset", String.class);
         JSONObject itemsData = null;
         try {
-            itemsData = STACManager.getItems(collectionData);
+            // itemsData = StacParser.getSampleItem(collectionData); TODO
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -128,7 +109,7 @@ public class STACAdapter {
 
     @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
     public boolean validateLocalImport(String collection) {
-        var collectionData = STACManager.requestMetadata(collection, "collection");
+        var collectionData = STACParser.requestMetadata(collection, "collection");
         // For now we validate that it is a proper STAC collection
         boolean hasRequiredFields = requiredFieldsOfCollection.stream().anyMatch(collectionData::has);
         if (!hasRequiredFields) {

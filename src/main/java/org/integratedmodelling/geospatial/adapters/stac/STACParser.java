@@ -7,14 +7,56 @@ import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
+import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
 import org.opengis.feature.simple.SimpleFeature;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class STACUtils {
+public class STACParser {
+
+    public static JSONObject requestMetadata(String collectionUrl, String type) {
+        HttpResponse<JsonNode> response = Unirest.get(collectionUrl).asJson();
+        if (!response.isSuccess() || response.getBody() == null) {
+            throw new KlabResourceAccessException("Cannot access the " + type + " at " + collectionUrl);
+        }
+        JSONObject data = response.getBody().getObject();
+        if (!data.getString("type").equalsIgnoreCase(type)) {
+            throw new KlabResourceAccessException("Data at " + collectionUrl + " is not a valid STAC " + type);
+        }
+        return response.getBody().getObject();
+    }
+
+    public static Set<String> readAssetNames(JSONObject assets) {
+        return Set.of(JSONObject.getNames(assets));
+    }
+
+    public static JSONObject getAsset(JSONObject assetMap, String assetId) {
+        return assetMap.getJSONObject(assetId);
+    }
+
+    public static List<SimpleFeature> getFeaturesFromStaticCollection(JSONObject collectionData) {
+        var collectionUrl = getLinkTo(collectionData, "self").get();
+        var collectionId = collectionData.getString("id");
+        var itemHrefs = getLinksTo(collectionData, "item");
+        itemHrefs = itemHrefs.stream().map(href -> getUrlOfItem(collectionUrl, collectionId, href)).collect(Collectors.toUnmodifiableList());
+
+        return itemHrefs.stream().map(i -> {
+            try {
+                return STACParser.getItemAsFeature(i);
+            } catch (Exception e) {
+                throw new KlabValidationException("Item at " + i + " cannot be parsed.");
+            }
+        }).toList();
+    }
+
+    private static SimpleFeature getItemAsFeature(String itemUrl) throws IOException {
+        HttpResponse<JsonNode> response = Unirest.get(itemUrl).asJson();
+        return GeoJSONReader.parseFeature(response.getBody().toString());
+    }
 
     public static String readDescription(JSONObject json) {
         return json.getString("description");
@@ -62,6 +104,10 @@ public class STACUtils {
 
     public static Optional<String> getLinkTo(JSONObject data, String rel) {
         return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).findFirst();
+    }
+
+    public static List<String> getLinksTo(JSONObject data, String rel) {
+        return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).toList();
     }
 
     public static String readLicense(JSONObject collection) {
@@ -129,8 +175,4 @@ public class STACUtils {
         return href;
     }
 
-    public static SimpleFeature getItemAsFeature(String itemUrl) throws IOException {
-        HttpResponse<JsonNode> response = Unirest.get(itemUrl).asJson();
-        return GeoJSONReader.parseFeature(response.getBody().toString());
-    }
 }
