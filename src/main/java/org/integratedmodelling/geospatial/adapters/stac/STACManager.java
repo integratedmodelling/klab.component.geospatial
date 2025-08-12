@@ -8,12 +8,14 @@ import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
+import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
+import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.Resource;
@@ -24,11 +26,10 @@ import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class STACManager {
@@ -73,20 +74,50 @@ public class STACManager {
         JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
         String assetId = resource.getParameters().get("asset", String.class);
 
-        boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
-        if (!hasSearchOption) {
-            try {
-                var items = STACParser.getFeaturesFromStaticCollection(collectionData);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow();
+        var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow(); //(Space) geometry.dimension(Geometry.Dimension.Type.SPACE)
         var envelope = space.getEnvelope();
         List<Double> bbox =  List.of(envelope.getMinX(), envelope.getMaxX(), envelope.getMinY(), envelope.getMaxY());
         var time = (Time) geometry.getDimensions().stream().filter(d -> d instanceof Time).findFirst().orElseThrow();
         var resourceTime = (Time) Scale.create(resource.getGeometry()).getTime();
+
+        boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
+        if (!hasSearchOption) {
+            try {
+                var features = STACParser.getFeaturesFromStaticCollection(collectionData);
+
+                // Filter by time
+                features = features.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
+
+                // Filter by space
+                features = features.stream().filter(f -> {
+                    return true;    // TODO
+                }).toList();
+
+                CoordinateReferenceSystem crs = features.get(0).getFeatureType().getCoordinateReferenceSystem();
+                if (crs == null) {
+                    crs = CrsUtilities.getCrsFromSrid(4326); // We go to the standard
+                }
+
+                // To HM items
+                List<HMStacItem> items = features.stream().map(f -> {
+                    try {
+                        return HMStacItem.fromSimpleFeature(f);
+                    } catch (Exception e) {
+                        builder.notification(Notification.warning("Cannot parse feature " + f.getID() + ". Ignored."));
+                        return null;
+                    }
+                }).filter(Objects::nonNull).toList();
+
+                //RegionMap regionTransformed = RegionMap.fromEnvelopeAndGrid(space.getEnvelope(), space.getStandardizedWidth(), space.getStandardizedHeight());
+                //HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
+                // TODO keep working on it
+                throw new KlabUnimplementedException("Static collections cannot be imported.");
+            } catch (Throwable e) {
+                // TODO
+                throw new RuntimeException(e);
+            }
+        }
+
 
         LogProgressMonitor lpm = new LogProgressMonitor();
         HMStacManager manager = new HMStacManager(catalogUrl, lpm);
@@ -129,6 +160,34 @@ public class STACManager {
             manager.close();
         }
         return coverage;
+    }
+
+    private static boolean isFeatureInTimeRange(Time time2, SimpleFeature f) {
+        Date datetime = (Date) f.getAttribute("datetime");
+        if (datetime != null) {
+            if (isDateWithinRange(time2, datetime)) {
+                return true;
+            }
+        }
+
+        Date itemStart = (Date) f.getAttribute("start_datetime");
+        if (itemStart == null) {
+            return false;
+        }
+        Date itemEnd = (Date) f.getAttribute("end_datetime");
+        if (itemEnd == null) {
+            return itemStart.toInstant().getEpochSecond() <= time2.getStart().getMilliseconds();
+        }
+        if (isDateWithinRange(time2, itemStart) || isDateWithinRange(time2, itemEnd)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isDateWithinRange(Time rangeTime, Date date) {
+        Date start = new Date(rangeTime.getStart().getMilliseconds());
+        Date end =  new Date(rangeTime.getEnd().getMilliseconds());
+        return date.after(start) && date.before(end);
     }
 
     private static GridCoverage2D buildStacCoverage(Data.Builder builder, HMStacCollection collection, HMRaster.MergeMode mergeMode, Space space, Envelope envelope, String assetId, LogProgressMonitor lpm) throws Exception {
