@@ -11,6 +11,7 @@ import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
 import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
+import org.integratedmodelling.common.authentication.Authentication;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
@@ -23,6 +24,7 @@ import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Envelope;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
+import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
@@ -66,7 +68,7 @@ public class STACManager {
         return Artifact.Type.VOID;
     }
 
-    public static GridCoverage2D getGridCoverage2D(Resource resource, Data.Builder builder, Geometry geometry) throws Exception {
+    public static GridCoverage2D getGridCoverage2D(Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
         String collectionUrl = resource.getParameters().get("collection", String.class);
         JSONObject collectionData = STACParser.requestMetadata(collectionUrl, "collection");
         String collectionId = collectionData.getString("id");
@@ -153,7 +155,21 @@ public class STACManager {
 
         GridCoverage2D coverage = null;
         try {
-            coverage = buildStacCoverage(builder, collection, mergeMode, space, envelope, assetId, lpm);
+            // TODO working on S3 credentials
+            var assets = STACParser.readAssetsFromCollection(collectionUrl, collectionData);
+            Set<String> assetIds = STACParser.readAssetNames(assets);
+            var asset = STACParser.getAsset(assets, assetId);
+            String assetHref = asset.getString("href");
+            if (assetHref.startsWith("s3://")) { // TODO manage S3 from the core projcet
+                final String AWS_ENDPOINT = "https://s3.amazonaws.com"; // TODO generalize to any S3 endpoint
+                var s3Credentials = Authentication.INSTANCE.getCredentials(AWS_ENDPOINT, scope);
+                final boolean hasCredentials = s3Credentials.getCredentials().isEmpty();
+                if (!hasCredentials) {
+                    throw new KlabResourceAccessException("Cannot access " + AWS_ENDPOINT +", lacking needed credentials.");
+                }
+
+            }
+            coverage = buildStacCoverage(builder, collection, mergeMode, space, envelope, assetId, lpm, scope);
         } catch (Exception e) {
             throw new KlabResourceAccessException("Cannot build STAC raster output. Reason " + e.getMessage());
         } finally {
@@ -190,7 +206,8 @@ public class STACManager {
         return date.after(start) && date.before(end);
     }
 
-    private static GridCoverage2D buildStacCoverage(Data.Builder builder, HMStacCollection collection, HMRaster.MergeMode mergeMode, Space space, Envelope envelope, String assetId, LogProgressMonitor lpm) throws Exception {
+    // TODO reduce number of args
+    private static GridCoverage2D buildStacCoverage(Data.Builder builder, HMStacCollection collection, HMRaster.MergeMode mergeMode, Space space, Envelope envelope, String assetId, LogProgressMonitor lpm, Scope scope) throws Exception {
         List<HMStacItem> items = collection.searchItems();
 
         if (items.isEmpty()) {
@@ -214,8 +231,6 @@ public class STACManager {
         if (EPSGsAtItems.size() > 1) {
             builder.notification(Notification.warning("Multiple EPSGs found on the items " + EPSGsAtItems.toString() + ". The transformation process could affect the data."));
         }
-
-        // Forget about AWS for now
 
         // Allow transform ensures the process to finish, but I would not bet on the resulting data.
         final boolean allowTransform = true;

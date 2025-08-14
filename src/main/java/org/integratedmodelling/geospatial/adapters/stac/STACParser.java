@@ -6,6 +6,7 @@ import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.data.geojson.GeoJSONReader;
+import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
 import org.opengis.feature.simple.SimpleFeature;
@@ -175,4 +176,56 @@ public class STACParser {
         return href;
     }
 
+    /**
+     * Reads the assets of a STAC collection and returns them as a JSON.
+     * @param collection as a JSON
+     * @return The asset list as a JSON
+     * @throws KlabResourceAccessException
+     */
+    public static JSONObject readAssetsFromCollection(String collectionUrl, JSONObject collection) throws KlabResourceAccessException {
+        String collectionId = collection.getString("id");
+        String catalogUrl = STACParser.getCatalogUrl(collectionUrl, collectionId, collection);
+        JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
+
+        Optional<String> searchEndpoint = STACParser.containsLinkTo(catalogData, "search")
+                ? STACParser.getLinkTo(catalogData, "search")
+                : STACParser.getLinkTo(collection, "search");
+
+        // Static catalogs should have their assets on the Collection
+        if (searchEndpoint.isEmpty()) {
+            // Check the assets
+            if (collection.has("assets")) {
+                return collection.getJSONObject("assets");
+            }
+            // Try to get the assets from a link that has type `item`
+            Optional<String> itemHref = STACParser.getLinkTo(collection, "item");
+            if (itemHref.isEmpty()) {
+                throw new KlabIOException("Cannot find items at STAC collection \"" + collectionUrl + "\"");
+            }
+            String itemUrl = itemHref.get().startsWith(".")
+                    ? collectionUrl.replace("collection.json", "") + itemHref.get().replace("./", "")
+                    : itemHref.get();
+            // TODO get assets from the item
+            JSONObject itemData = STACParser.requestMetadata(itemUrl, "feature");
+            if (itemData.has("assets")) {
+                return itemData.getJSONObject("assets");
+            }
+            throw new KlabIOException("Cannot find assets at STAC collection \"" + collectionUrl + "\"");
+        }
+
+        // TODO Move the query to another place.
+        String parameters = "?collections=" + collectionId + "&limit=1";
+        HttpResponse<JsonNode> response = Unirest.get(searchEndpoint.get() + parameters).asJson();
+
+        if (!response.isSuccess()) {
+            throw new KlabResourceAccessException(); //TODO set message
+        }
+
+        JSONObject searchResponse = response.getBody().getObject();
+        if (searchResponse.getJSONArray("features").length() == 0) {
+            throw new KlabResourceAccessException(); // TODO set message there is no feature
+        }
+
+        return searchResponse.getJSONArray("features").getJSONObject(0).getJSONObject("assets");
+    }
 }
