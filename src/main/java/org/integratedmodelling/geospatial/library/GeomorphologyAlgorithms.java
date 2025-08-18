@@ -30,7 +30,7 @@ public class GeomorphologyAlgorithms {
       geometry = "S2",
       type = Type.NUMBER,
       split = 1, // FIXME this should be unnecessary because the single DoubleBuffer arg should force it
-      fillingCurve = Data.SpaceFillingCurve.D2_XY,
+      fillingCurve = Data.FillCurve.D2_XY,
       parameters = {
         @KlabFunction.Argument(
             name = "range",
