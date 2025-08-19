@@ -13,6 +13,7 @@ import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.common.authentication.Authentication;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
+import org.integratedmodelling.geospatial.credentials.S3Utils;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
@@ -157,7 +158,6 @@ public class STACManager {
         try {
             // TODO working on S3 credentials
             var assets = STACParser.readAssetsFromCollection(collectionUrl, collectionData);
-            Set<String> assetIds = STACParser.readAssetNames(assets);
             var asset = STACParser.getAsset(assets, assetId);
             String assetHref = asset.getString("href");
             if (assetHref.startsWith("s3://")) { // TODO manage S3 from the core projcet
@@ -167,6 +167,11 @@ public class STACManager {
                 if (!hasCredentials) {
                     throw new KlabResourceAccessException("Cannot access " + AWS_ENDPOINT +", lacking needed credentials.");
                 }
+                var credentials = s3Credentials.getCredentials();
+                final String accessKey = credentials.get(0);
+                final String secretKey = credentials.get(1);
+                var s3Client = S3Utils.buildS3Client(accessKey, secretKey, Optional.empty());
+                // TODO add the client to the HM
 
             }
             coverage = buildStacCoverage(builder, collection, mergeMode, space, envelope, assetId, lpm, scope);

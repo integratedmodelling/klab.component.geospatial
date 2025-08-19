@@ -223,6 +223,11 @@
             <version>${mockito-version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.davidmoten</groupId>
+            <artifactId>aws-lightweight-client-java</artifactId>
+            <version>0.1.23</version>
+        </dependency>
     </dependencies>
 
 </project>
