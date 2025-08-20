@@ -29,7 +29,8 @@ import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.opengis.feature.simple.SimpleFeature;
+import org.integratedmodelling.klab.runtime.scale.space.ShapeImpl;
+import org.integratedmodelling.klab.runtime.scale.space.SpaceImpl;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.*;
@@ -77,7 +78,7 @@ public class STACManager {
         JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
         String assetId = resource.getParameters().get("asset", String.class);
 
-        var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow(); //(Space) geometry.dimension(Geometry.Dimension.Type.SPACE)
+        var space = (ShapeImpl) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow(); //(Space) geometry.dimension(Geometry.Dimension.Type.SPACE)
         var envelope = space.getEnvelope();
         List<Double> bbox =  List.of(envelope.getMinX(), envelope.getMaxX(), envelope.getMinY(), envelope.getMaxY());
         var time = (Time) geometry.getDimensions().stream().filter(d -> d instanceof Time).findFirst().orElseThrow();
@@ -86,35 +87,22 @@ public class STACManager {
         boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
         if (!hasSearchOption) {
             try {
-                var features = STACParser.getFeaturesFromStaticCollection(collectionData);
+                var items = STACParser.getHMItemsFromStaticCollection(collectionData);
 
                 // Filter by time
-                features = features.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
+                items = items.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
 
                 // Filter by space
-                features = features.stream().filter(f -> {
-                    return true;    // TODO
-                }).toList();
+                items = items.stream().filter(item -> space.getStandardizedGeometry().intersects(item.getGeometry())).toList();
 
-                CoordinateReferenceSystem crs = features.get(0).getFeatureType().getCoordinateReferenceSystem();
-                if (crs == null) {
-                    crs = CrsUtilities.getCrsFromSrid(4326); // We go to the standard
-                }
+                Integer epsg = items.get(0).getEpsg();
+                var crs = epsg == null
+                    ? CrsUtilities.getCrsFromSrid(4326)  // We go to the standard
+                    : CrsUtilities.getCrsFromSrid(epsg);
 
-                // To HM items
-                List<HMStacItem> items = features.stream().map(f -> {
-                    try {
-                        return HMStacItem.fromSimpleFeature(f);
-                    } catch (Exception e) {
-                        builder.notification(Notification.warning("Cannot parse feature " + f.getID() + ". Ignored."));
-                        return null;
-                    }
-                }).filter(Objects::nonNull).toList();
-
-                //RegionMap regionTransformed = RegionMap.fromEnvelopeAndGrid(space.getEnvelope(), space.getStandardizedWidth(), space.getStandardizedHeight());
-                //HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
-                // TODO keep working on it
-                throw new KlabUnimplementedException("Static collections cannot be imported.");
+                RegionMap regionTransformed = RegionMap.fromEnvelopeAndResolution(space.getJTSEnvelope(), space.getStandardizedHeight(), space.getStandardizedWidth());
+                HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
+                return outRaster.buildCoverage();
             } catch (Throwable e) {
                 // TODO
                 throw new RuntimeException(e);
@@ -183,23 +171,23 @@ public class STACManager {
         return coverage;
     }
 
-    private static boolean isFeatureInTimeRange(Time time2, SimpleFeature f) {
-        Date datetime = (Date) f.getAttribute("datetime");
+    private static boolean isFeatureInTimeRange(Time time, HMStacItem item) {
+        Date datetime = item.getDateCet();
         if (datetime != null) {
-            if (isDateWithinRange(time2, datetime)) {
+            if (isDateWithinRange(time, datetime)) {
                 return true;
             }
         }
 
-        Date itemStart = (Date) f.getAttribute("start_datetime");
+        Date itemStart = item.getStart();
         if (itemStart == null) {
             return false;
         }
-        Date itemEnd = (Date) f.getAttribute("end_datetime");
+        Date itemEnd = item.getEnd();
         if (itemEnd == null) {
-            return itemStart.toInstant().getEpochSecond() <= time2.getStart().getMilliseconds();
+            return itemStart.toInstant().getEpochSecond() <= time.getStart().getMilliseconds();
         }
-        if (isDateWithinRange(time2, itemStart) || isDateWithinRange(time2, itemEnd)) {
+        if (isDateWithinRange(time, itemStart) || isDateWithinRange(time, itemEnd)) {
             return true;
         }
         return false;

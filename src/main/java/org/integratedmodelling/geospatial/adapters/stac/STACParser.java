@@ -6,6 +6,7 @@ import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.data.geojson.GeoJSONReader;
+import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
@@ -39,7 +40,7 @@ public class STACParser {
         return assetMap.getJSONObject(assetId);
     }
 
-    public static List<SimpleFeature> getFeaturesFromStaticCollection(JSONObject collectionData) {
+    public static List<HMStacItem> getHMItemsFromStaticCollection(JSONObject collectionData) {
         var collectionUrl = getLinkTo(collectionData, "self").get();
         var collectionId = collectionData.getString("id");
         var itemHrefs = getLinksTo(collectionData, "item");
@@ -47,7 +48,7 @@ public class STACParser {
 
         return itemHrefs.stream().map(i -> {
             try {
-                return STACParser.getItemAsFeature(i);
+                return HMStacItem.fromSimpleFeature(STACParser.getItemAsFeature(i));
             } catch (Exception e) {
                 throw new KlabValidationException("Item at " + i + " cannot be parsed.");
             }
