@@ -8,7 +8,6 @@ import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
-import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.common.authentication.Authentication;
@@ -17,11 +16,9 @@ import org.integratedmodelling.geospatial.credentials.S3Utils;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
-import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.Resource;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Envelope;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
@@ -30,8 +27,7 @@ import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ShapeImpl;
-import org.integratedmodelling.klab.runtime.scale.space.SpaceImpl;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -70,7 +66,7 @@ public class STACManager {
         return Artifact.Type.VOID;
     }
 
-    public static GridCoverage2D getGridCoverage2D(Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
+    public static GridCoverage2D getCoverage(Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
         String collectionUrl = resource.getParameters().get("collection", String.class);
         JSONObject collectionData = STACParser.requestMetadata(collectionUrl, "collection");
         String collectionId = collectionData.getString("id");
@@ -78,50 +74,30 @@ public class STACManager {
         JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
         String assetId = resource.getParameters().get("asset", String.class);
 
-        var space = (ShapeImpl) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow(); //(Space) geometry.dimension(Geometry.Dimension.Type.SPACE)
+        var space = (ShapeImpl) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow();
         var envelope = space.getEnvelope();
-        List<Double> bbox =  List.of(envelope.getMinX(), envelope.getMaxX(), envelope.getMinY(), envelope.getMaxY());
         var time = (Time) geometry.getDimensions().stream().filter(d -> d instanceof Time).findFirst().orElseThrow();
-        var resourceTime = (Time) Scale.create(resource.getGeometry()).getTime();
+
+        LogProgressMonitor lpm = new LogProgressMonitor();
+        HMStacManager manager = new HMStacManager(catalogUrl, lpm);
+        HMStacCollection collection = initializeCollection(resource, manager, collectionUrl);
 
         boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
         if (!hasSearchOption) {
             try {
-                var items = STACParser.getHMItemsFromStaticCollection(collectionData);
-
-                // Filter by time
-                items = items.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
-
-                // Filter by space
-                items = items.stream().filter(item -> space.getStandardizedGeometry().intersects(item.getGeometry())).toList();
-
-                Integer epsg = items.get(0).getEpsg();
-                var crs = epsg == null
-                    ? CrsUtilities.getCrsFromSrid(4326)  // We go to the standard
-                    : CrsUtilities.getCrsFromSrid(epsg);
+                var items = STACParser.getHMItemsFromStaticCollection(collectionData).stream()
+                    // Filter by time
+                    .filter(item -> isFeatureInTimeRange(time, item))
+                    // Filter by space
+                    .filter(item -> space.getStandardizedGeometry().intersects(item.getGeometry())).toList();
 
                 RegionMap regionTransformed = RegionMap.fromEnvelopeAndResolution(space.getJTSEnvelope(), space.getStandardizedHeight(), space.getStandardizedWidth());
-                HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
+                HMRaster outRaster = collection.readRasterBandOnRegion(regionTransformed, assetId, items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
                 return outRaster.buildCoverage();
             } catch (Throwable e) {
                 // TODO
                 throw new RuntimeException(e);
             }
-        }
-
-
-        LogProgressMonitor lpm = new LogProgressMonitor();
-        HMStacManager manager = new HMStacManager(catalogUrl, lpm);
-        HMStacCollection collection = null;
-        try {
-            manager.open();
-            collection = manager.getCollectionById(resource.getParameters().get("collectionId", String.class));
-        } catch (Exception e) {
-            throw new KlabResourceAccessException("Cannot access to STAC collection " + collectionUrl);
-        }
-
-        if (collection == null) {
-            throw new KlabResourceAccessException("Collection " + resource.getParameters().get("collection", String.class) + " cannot be found.");
         }
 
         // TODO for now, we do not manage the semantics for the MergeMode
@@ -169,6 +145,21 @@ public class STACManager {
             manager.close();
         }
         return coverage;
+    }
+
+    @NotNull
+    private static HMStacCollection initializeCollection(Resource resource, HMStacManager manager, String collectionUrl) {
+        HMStacCollection collection = null;
+        try {
+            manager.open();
+            collection = manager.getCollectionById(resource.getParameters().get("collectionId", String.class));
+        } catch (Exception e) {
+            throw new KlabResourceAccessException("Cannot access to STAC collection " + collectionUrl);
+        }
+        if (collection == null) {
+            throw new KlabResourceAccessException("Collection " + resource.getParameters().get("collection", String.class) + " cannot be found.");
+        }
+        return collection;
     }
 
     private static boolean isFeatureInTimeRange(Time time, HMStacItem item) {
@@ -227,7 +218,7 @@ public class STACManager {
 
         // Allow transform ensures the process to finish, but I would not bet on the resulting data.
         final boolean allowTransform = true;
-        HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
+        HMRaster outRaster = collection.readRasterBandOnRegion(regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
         return outRaster.buildCoverage();
     }
 

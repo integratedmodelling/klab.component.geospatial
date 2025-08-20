@@ -58,7 +58,7 @@ public class STACAdapter {
     public void encode(Resource resource, Urn urn, Data.Builder builder, Geometry geometry, Observable observable, Scope scope) {
         GridCoverage2D coverage = null;
         try {
-            coverage = STACManager.getGridCoverage2D(resource, builder, geometry, scope);
+            coverage = STACManager.getCoverage(resource, builder, geometry, scope);
         } catch (Exception e) {
             builder.notification(Notification.error("Cannot encode STAC resource", Notification.Outcome.Failure));
             return;
