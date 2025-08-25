@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.adapters;
 
-import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.STACManager;
@@ -82,13 +81,7 @@ public class STACAdapter {
             throw new KlabUnimplementedException("STAC adapter: can't handle static catalogs");
         }
         String assetId = resourceUrn.getParameters().get("asset", String.class);
-        JSONObject itemsData = null;
-        try {
-            // itemsData = StacParser.getSampleItem(collectionData); TODO
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-        var assetsData = itemsData.getJSONArray("features").getJSONObject(0).getJSONObject("assets");
+        var assetsData = STACParser.readAssetsFromCollection(collection, collectionData);
         if (!assetsData.has(assetId)) {
             throw new KlabUnimplementedException("STAC adapter: can't find " + assetId);
         }

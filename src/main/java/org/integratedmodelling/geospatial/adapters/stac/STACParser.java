@@ -7,7 +7,6 @@ import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.hortonmachine.gears.io.stac.HMStacItem;
-import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
 import org.opengis.feature.simple.SimpleFeature;
@@ -16,7 +15,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class STACParser {
 
@@ -44,7 +42,7 @@ public class STACParser {
         var collectionUrl = getLinkTo(collectionData, "self").get();
         var collectionId = collectionData.getString("id");
         var itemHrefs = getLinksTo(collectionData, "item");
-        itemHrefs = itemHrefs.stream().map(href -> getUrlOfItem(collectionUrl, collectionId, href)).collect(Collectors.toUnmodifiableList());
+        itemHrefs = itemHrefs.stream().map(href -> getUrlOfItem(collectionUrl, collectionId, href)).toList();
 
         return itemHrefs.stream().map(i -> {
             try {
@@ -75,7 +73,7 @@ public class STACParser {
     final private static Set<String> DOI_KEYS_IN_STAC_JSON = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
 
     public static String readDOI(JSONObject json) {
-        Optional<String> doi = DOI_KEYS_IN_STAC_JSON.stream().filter(key -> json.has(key)).map(key -> json.getString(key)).findFirst();
+        Optional<String> doi = DOI_KEYS_IN_STAC_JSON.stream().filter(json::has).map(json::getString).findFirst();
         return doi.orElse(null);
     }
 
@@ -181,13 +179,14 @@ public class STACParser {
      * Reads the assets of a STAC collection and returns them as a JSON.
      * @param collection as a JSON
      * @return The asset list as a JSON
-     * @throws KlabResourceAccessException
+     * @throws KlabResourceAccessException if the items or assets cannot be found
      */
     public static JSONObject readAssetsFromCollection(String collectionUrl, JSONObject collection) throws KlabResourceAccessException {
         String collectionId = collection.getString("id");
         String catalogUrl = STACParser.getCatalogUrl(collectionUrl, collectionId, collection);
         JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
 
+        // Not every STAC resoruce contains the search endpoint in the collection, so we should take a look at the catalog
         Optional<String> searchEndpoint = STACParser.containsLinkTo(catalogData, "search")
                 ? STACParser.getLinkTo(catalogData, "search")
                 : STACParser.getLinkTo(collection, "search");
@@ -201,7 +200,7 @@ public class STACParser {
             // Try to get the assets from a link that has type `item`
             Optional<String> itemHref = STACParser.getLinkTo(collection, "item");
             if (itemHref.isEmpty()) {
-                throw new KlabIOException("Cannot find items at STAC collection \"" + collectionUrl + "\"");
+                throw new KlabResourceAccessException("Cannot find items at STAC collection \"" + collectionUrl + "\"");
             }
             String itemUrl = itemHref.get().startsWith(".")
                     ? collectionUrl.replace("collection.json", "") + itemHref.get().replace("./", "")
@@ -211,7 +210,7 @@ public class STACParser {
             if (itemData.has("assets")) {
                 return itemData.getJSONObject("assets");
             }
-            throw new KlabIOException("Cannot find assets at STAC collection \"" + collectionUrl + "\"");
+            throw new KlabResourceAccessException("Cannot find assets at STAC collection \"" + collectionUrl + "\"");
         }
 
         // TODO Move the query to another place.
@@ -223,7 +222,7 @@ public class STACParser {
         }
 
         JSONObject searchResponse = response.getBody().getObject();
-        if (searchResponse.getJSONArray("features").length() == 0) {
+        if (searchResponse.getJSONArray("features").isEmpty()) {
             throw new KlabResourceAccessException(); // TODO set message there is no feature
         }
 
