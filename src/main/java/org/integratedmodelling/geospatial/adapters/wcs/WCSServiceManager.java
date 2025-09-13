@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.jxpath.JXPathContext;
 import org.integratedmodelling.common.authentication.Authentication;
 import org.integratedmodelling.common.authentication.Authorization;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.authentication.ExternalAuthenticationCredentials;
@@ -236,9 +237,7 @@ public class WCSServiceManager {
     }
 
     public URL buildRetrieveUrl(
-            Version version,
-            Geometry geometry,
-            RasterAdapter.Interpolation interpolation) {
+        Version version, Geometry geometry, RasterAdapter.Interpolation interpolation) {
       return WCSServiceManager.this.buildRetrieveUrl(this, version, geometry, interpolation);
     }
 
@@ -660,6 +659,7 @@ public class WCSServiceManager {
                   + " has changed since last read: coverage cache expires in 12h");
         }
 
+        Logging.INSTANCE.info("WCS catalog at " + url + " retrieved successfully");
         wcsCache.put(url.toString(), hash);
 
         // Parse the XML content
@@ -778,47 +778,38 @@ public class WCSServiceManager {
       Geometry geometry,
       RasterAdapter.Interpolation interpolation) {
 
-    var space = geometry.dimension(Geometry.Dimension.Type.SPACE);
+    var scale = GeometryRepository.INSTANCE.scale(geometry);
+
+    var space = scale.getSpace();
     URL url = null;
 
     if (space.getShape().size() != 2 || !space.isRegular()) {
-      throw new IllegalArgumentException(
+      throw new KlabInternalErrorException(
           "cannot retrieve  a grid dataset from WCS in a non-grid context");
     }
 
-    String rcrs = space.getParameters().get(GeometryImpl.PARAMETER_SPACE_PROJECTION, String.class);
-    Projection crs = Projection.of(rcrs);
-    ProjectionImpl projection = null;
-    if (crs instanceof ProjectionImpl p) {
-      projection = p;
-    } else {
-      throw new KlabInternalErrorException(
-          "WCS service expects a specific projection implementation, got " + rcrs + " instead");
-    }
-
-    double[] extent =
-        space.getParameters().get(GeometryImpl.PARAMETER_SPACE_BOUNDINGBOX, double[].class);
-
+    var projection = space.getProjection();
+    var envelope = space.getEnvelope();
     int xc = space.getShape().get(0).intValue();
     int yc = space.getShape().get(1).intValue();
 
-    double west = extent[0];
-    double east = extent[1];
-    double south = extent[2];
-    double north = extent[3];
+    double west = envelope.getMinX();
+    double east = envelope.getMaxX();
+    double south = envelope.getMinY();
+    double north = envelope.getMaxY();
 
     /*
      * jiggle by the projection's equivalent of a few meters if we're asking for a single point,
      * so WCS does not go crazy.
      */
-    if (Utils.Numbers.equal(west, east)) {
+    if (Utils.Numbers.equal(west, east) && projection instanceof ProjectionImpl projection1) {
       double delta =
-          (projection
+          (projection1
                       .getCoordinateReferenceSystem()
                       .getCoordinateSystem()
                       .getAxis(0)
                       .getMaximumValue()
-                  - projection
+                  - projection1
                       .getCoordinateReferenceSystem()
                       .getCoordinateSystem()
                       .getAxis(0)
@@ -828,14 +819,14 @@ public class WCSServiceManager {
       east += delta;
     }
 
-    if (Utils.Numbers.equal(north, south)) {
+    if (Utils.Numbers.equal(north, south) && projection instanceof ProjectionImpl projection1) {
       double delta =
-          (projection
+          (projection1
                       .getCoordinateReferenceSystem()
                       .getCoordinateSystem()
                       .getAxis(1)
                       .getMaximumValue()
-                  - projection
+                  - projection1
                       .getCoordinateReferenceSystem()
                       .getCoordinateSystem()
                       .getAxis(1)

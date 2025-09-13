@@ -65,10 +65,8 @@ import java.util.concurrent.atomic.AtomicInteger;
     type = Artifact.Type.NUMBER,
     embeddable = true,
     fillCurve = Data.FillCurve.D2_XY,
-    splits =
-        1, // while testing. Then we can split requests to multiple calls or servers if resource
-    // supports replication
-    minSizeForSplitting = 1000000L, // TODO for now; could become configurable
+    minSizeForSplitting =
+        1000000L, // TODO for now; could become configurable through runtime properties
     parameters = {
       @Parameter(
           name = "serviceUrl",
@@ -223,7 +221,7 @@ public class WCSAdapter {
       } else {
         try {
           RasterEncoder.INSTANCE.encodeFromCoverage(
-              resource, parameters, coverage, geometry, builder, observable, scope);
+              resource, parameters, coverage, geometry, builder);
         } catch (Throwable e) {
           builder.notification(
               Notification.error(
@@ -322,6 +320,26 @@ public class WCSAdapter {
     }
   }
 
+  @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.PreContextualization)
+  public Notification preContextualization(Resource resource, ContextScope scope) {
+    var serviceUrl = resource.getParameters().get("serviceUrl", String.class);
+    var version = Version.create(resource.getParameters().get("wcsVersion", String.class));
+    WCSServiceManager service = getService(serviceUrl, version);
+    if (service == null) {
+      return Notification.warning("Unable to connect to WCS service at " + serviceUrl);
+    }
+    var layer = service.getLayer(resource.getParameters().get("wcsIdentifier", String.class));
+    if (layer == null) {
+      return Notification.warning(
+          "Unable to find WCS layer "
+              + resource.getParameters().get("wcsIdentifier", String.class)
+              + " out of "
+              + service.getLayers().size());
+    }
+    return Notification.info(
+        "WCS layer " + layer.getName() + " found in service.", Notification.Outcome.Success);
+  }
+
   public static File getAdjustedCoverage(String url, Geometry geometry) {
     try (InputStream input = new URL(url).openStream()) {
       URL getCov = new URL(url);
@@ -335,17 +353,15 @@ public class WCSAdapter {
 
     try {
 
+      var scale = GeometryRepository.INSTANCE.scale(geometry);
+
       File coverageFile = File.createTempFile("geo", ".tiff");
       Files.copy(input, coverageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-      var space = geometry.dimension(Geometry.Dimension.Type.SPACE);
-      String rcrs =
-          space.getParameters().get(GeometryImpl.PARAMETER_SPACE_PROJECTION, String.class);
-      var crs = Projection.of(rcrs);
+      var space = scale.getSpace();
+      var crs = space.getProjection();
       int cols = space.getShape().get(0).intValue();
       int rows = space.getShape().get(1).intValue();
-      double[] extent =
-          space.getParameters().get(GeometryImpl.PARAMETER_SPACE_BOUNDINGBOX, double[].class);
+      var extent = space.getEnvelope();
 
       GridCoverage2D coverage = OmsRasterReader.readRaster(coverageFile.getAbsolutePath());
       var envelope = coverage.getEnvelope();
@@ -354,19 +370,20 @@ public class WCSAdapter {
       var upperCorner = envelope.getUpperCorner();
       double[] eastNorth = upperCorner.getCoordinate();
 
-      org.locationtech.jts.geom.Envelope requestedExtend =
-          new org.locationtech.jts.geom.Envelope(extent[0], extent[1], extent[2], extent[3]);
-      org.locationtech.jts.geom.Envelope recievedExtend =
+      org.locationtech.jts.geom.Envelope requestedExtent =
+          new org.locationtech.jts.geom.Envelope(
+              extent.getMinX(), extent.getMaxX(), extent.getMinY(), extent.getMaxY());
+      org.locationtech.jts.geom.Envelope receivedExtent =
           new org.locationtech.jts.geom.Envelope(
               westSouth[0], eastNorth[0], westSouth[1], eastNorth[1]);
 
-      double receivedArea = recievedExtend.getArea();
-      double requestedArea = requestedExtend.getArea();
+      double receivedArea = receivedExtent.getArea();
+      double requestedArea = requestedExtent.getArea();
       double diff = Math.abs(requestedArea - receivedArea);
       if (diff > 0.01 && crs instanceof ProjectionImpl projection) {
         // need to pad
         var raster = HMRaster.fromGridCoverage(coverage);
-        var region = RegionMap.fromEnvelopeAndGrid(requestedExtend, cols, rows);
+        var region = RegionMap.fromEnvelopeAndGrid(requestedExtent, cols, rows);
         var paddedRaster =
             new HMRaster.HMRasterWritableBuilder()
                 .setName("padded")

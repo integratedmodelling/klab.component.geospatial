@@ -34,6 +34,7 @@ import org.geotools.coverage.processing.Operations;
 import org.geotools.gce.geotiff.GeoTiffFormat;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.factory.Hints;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.common.utils.Utils;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.collections.Parameters;
@@ -69,24 +70,20 @@ public enum RasterEncoder {
    * @param coverage
    * @param geometry
    * @param builder
-   * @param scope
    */
   public void encodeFromCoverage(
       Resource resource,
       Parameters<String> urnParameters,
       GridCoverage coverage,
       Geometry geometry,
-      Data.Builder builder,
-      Observable observable,
-      Scope scope) {
+      Data.Builder builder) {
 
     /*
      * Set the data from the transformed coverage
      */
-    var scale = Scale.create(geometry);
     RenderedImage image = coverage.getRenderedImage();
     RandomIter iterator = RandomIterFactory.create(image, null);
-    var space = scale.getSpace();
+    var scale = GeometryRepository.INSTANCE.scale(geometry);
     int band = 0;
     if (urnParameters.containsKey(RasterAdapter.BAND_PARAM)) {
       band = urnParameters.get(RasterAdapter.BAND_PARAM, Integer.class);
@@ -129,45 +126,45 @@ public enum RasterEncoder {
     var xy = scale.getSpace().getShape();
     var xx = xy.get(0);
     var yy = xy.get(1);
-    long offset = 0;
-    var filler = builder.buffer(Storage.DoubleBuffer.class, Data.FillCurve.D2_XY);
-    for (Geometry subscale : scale.without(Geometry.Dimension.Type.SPACE)) {
-      var spaceScale = scale.at(subscale);
-      for (int x = 0; x < xx; x++) {
-        for (int y = 0; y < yy; y++) {
+    //    long offset = 0;
+    var filler = builder.scanner(Storage.DoubleScanner.class);
+    //    for (Geometry subscale : scale.without(Geometry.Dimension.Type.SPACE)) {
+    //      var spaceScale = scale.at(subscale);
+    for (int x = 0; x < xx; x++) {
+      for (int y = 0; y < yy; y++) {
 
-          double value =
-              bandMixer == null
-                  ? getCellValue(iterator, x, y, band)
-                  : getCellMixerValue(iterator, x, y, bandMixer, nBands);
+        double value =
+            bandMixer == null
+                ? getCellValue(iterator, x, y, band)
+                : getCellMixerValue(iterator, x, y, bandMixer, nBands);
 
-          // this is cheeky but will catch most of the nodata and
-          // none of the good data
-          // FIXME see if this is really necessary
-          if (value < -1.0E35 || value > 1.0E35) {
+        // this is cheeky but will catch most of the nodata and
+        // none of the good data
+        // FIXME see if this is really necessary
+        if (value < -1.0E35 || value > 1.0E35) {
+          value = Double.NaN;
+        }
+
+        for (double nd : nodata) {
+          if (Utils.Numbers.equal(value, nd)) {
+            value = Double.NaN;
+            break;
+          }
+        }
+
+        if (transformation != null && Utils.Data.isData(value)) {
+          binding.setVariable("self", value);
+          Object o = transformation.run();
+          if (o instanceof Number) {
+            value = ((Number) o).doubleValue();
+          } else {
             value = Double.NaN;
           }
-
-          for (double nd : nodata) {
-            if (Utils.Numbers.equal(value, nd)) {
-              value = Double.NaN;
-              break;
-            }
-          }
-
-          if (transformation != null && Utils.Data.isData(value)) {
-            binding.setVariable("self", value);
-            Object o = transformation.run();
-            if (o instanceof Number) {
-              value = ((Number) o).doubleValue();
-            } else {
-              value = Double.NaN;
-            }
-          }
-
-          filler.set(value, offset++);
         }
+
+        filler.add(value);
       }
+      //      }
     }
   }
 

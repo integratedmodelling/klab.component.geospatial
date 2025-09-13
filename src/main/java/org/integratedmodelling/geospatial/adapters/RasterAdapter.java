@@ -23,6 +23,7 @@ import java.util.Set;
     name = "raster",
     version = Version.CURRENT,
     type = Artifact.Type.NUMBER,
+    fillCurve = Data.FillCurve.D2_XY,
     parameters = {
       // TODO
       @Parameter(
@@ -103,9 +104,7 @@ public class RasterAdapter {
         Utils.Resources.overrideParameters(resource, urn),
         coverage,
         geometry,
-        builder,
-        observable,
-        scope);
+        builder);
   }
 
   @Importer(
