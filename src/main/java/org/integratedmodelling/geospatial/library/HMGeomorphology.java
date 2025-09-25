@@ -3,8 +3,6 @@ package org.integratedmodelling.geospatial.library;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.mediation.NumericRange;
-import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.geometry.Geometry.Dimension;
 import org.integratedmodelling.klab.api.knowledge.Artifact.Type;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.lang.ServiceCall;
@@ -13,13 +11,13 @@ import org.integratedmodelling.klab.api.services.runtime.extension.Library;
 
 // TODO provide implementations for the entire HortonMachine :)
 @Library(
-    name = "klab.geomorphology",
+    name = "hm.geomorphology",
     description =
         """
         Contextualizers that ....""")
-public class GeomorphologyAlgorithms {
+public class HMGeomorphology {
 
-  // FIXME this only as an example, copied from klab.component.generators
+  // FIXME this only as an example
   @KlabFunction(
       name = "slope",
       description =
