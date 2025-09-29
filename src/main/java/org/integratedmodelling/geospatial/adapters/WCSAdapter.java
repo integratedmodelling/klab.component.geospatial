@@ -238,34 +238,6 @@ public class WCSAdapter {
     }
   }
 
-  @Exporter(
-      schema = "wcs.export.html",
-      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
-      mediaType = MediaType.TEXT_HTML_VALUE,
-      // TODO add properties for size, viewport etc
-      description = "Export an observation as HTML page visualizing it")
-  public InputStream exportHtml(
-      Resource resource,
-      Observation observation,
-      ContextScope scope,
-      BaseService service,
-      Parameters<String> parameters) {
-    /*
-     * TODO if the URN is not already associated to a geotiff cached from a previous request, export it as a geotiff
-     *  in temp storage and cache it
-     */
-
-    /*
-    TODO submit the geotiff for publishing through the generic asset publishing mechanism and store the URL
-     */
-
-    /*
-     * TODO stream the leaflet template with the URL returned by the service and any data from the observation
-     */
-
-    return null;
-  }
-
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
   public Notification validateImported(Resource resource) {
     try {
