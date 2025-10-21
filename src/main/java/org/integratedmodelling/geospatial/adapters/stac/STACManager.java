@@ -234,7 +234,7 @@ public class STACManager {
 
         // Allow transform ensures the process to finish, but I would not bet on the resulting data.
         final boolean allowTransform = true;
-        HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
+        HMRaster outRaster = collection.readRasterBandOnRegion(regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
         return outRaster.buildCoverage();
     }
 

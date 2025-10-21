@@ -19,7 +19,6 @@ import org.integratedmodelling.klab.api.collections.Triple;
 import org.integratedmodelling.klab.api.configuration.Configuration;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
-import org.integratedmodelling.klab.api.digitaltwin.Scheduler;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
@@ -42,8 +41,6 @@ import org.opengis.coverage.grid.GridCoverage;
 import org.springframework.http.MediaType;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
@@ -241,59 +238,6 @@ public class WCSAdapter {
     }
   }
 
-  @Exporter(
-      schema = "wcs.export.geotiff",
-      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
-      mediaType = "image/tiff",
-      description = "Export an observation as a GeoTIFF file")
-  public InputStream exportGeotiff(
-      Observation observation, Scheduler.Event event, ContextScope scope) {
-
-    /*
-     * TODO if the URN is not already associated to a geotiff cached from a previous request, export it as a geotiff
-     *  in temp storage and cache it
-     */
-    WCSServiceManager wcsServiceManager =
-        getService(
-            observation.getContextualizationData().getParameters().get("serviceUrl", String.class),
-            Version.create(
-                observation
-                    .getContextualizationData()
-                    .getParameters()
-                    .get("wcsVersion", String.class)));
-    var layer =
-        wcsServiceManager.getLayer(
-            observation
-                .getContextualizationData()
-                .getParameters()
-                .get("wcsIdentifier", String.class));
-
-    if (layer != null) {
-
-      var interpolation =
-          RasterAdapter.Interpolation.getDefaultForType(observation.getObservable());
-      if (observation
-          .getContextualizationData()
-          .getParameters()
-          .containsKey(RasterAdapter.INTERPOLATION_PARAM)) {
-        interpolation =
-            RasterAdapter.Interpolation.fromField(
-                observation
-                    .getContextualizationData()
-                    .getParameters()
-                    .get(RasterAdapter.INTERPOLATION_PARAM, String.class));
-      }
-      try {
-        return new FileInputStream(getCachedFile(layer, observation.getGeometry(), interpolation));
-      } catch (FileNotFoundException e) {
-        Logging.INSTANCE.error(
-            "Unable to find cached file for observation " + observation.getUrn());
-      }
-    }
-
-    return null;
-  }
-
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
   public Notification validateImported(Resource resource) {
     try {
@@ -334,9 +278,6 @@ public class WCSAdapter {
     }
     return RasterEncoder.INSTANCE.readCoverage(getCachedFile(layer, geometry, interpolation));
   }
-
-  // TODO based on the resource type, will need a contextualizer that produces the proper parameters
-  //  multi-file resource with the needed event.
 
   private File getCachedFile(
       WCSServiceManager.WCSLayer layer,
