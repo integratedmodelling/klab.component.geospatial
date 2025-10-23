@@ -4,22 +4,11 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import com.github.javaparser.ast.observer.Observable;
-import org.integratedmodelling.klab.Observations;
 import org.integratedmodelling.klab.api.collections.Triple;
-import org.integratedmodelling.klab.api.data.ILocator;
-import org.integratedmodelling.klab.api.data.mediation.IUnit;
 import org.integratedmodelling.klab.api.data.mediation.Unit;
 import org.integratedmodelling.klab.api.digitaltwin.Scheduler;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.observation.Observation;
-import org.integratedmodelling.klab.api.observations.IState;
-import org.integratedmodelling.klab.api.provenance.IArtifact;
-import org.integratedmodelling.klab.api.services.UnitService;
-import org.integratedmodelling.klab.common.mediation.Unit;
-import org.integratedmodelling.klab.rest.StateSummary;
-import org.integratedmodelling.klab.utils.Triple;
 
 /**
  * Complex serializable color schema that pairs numeric values or concept values to colors,
@@ -99,7 +88,7 @@ public class ColorScheme {
     Unit unitFrom = null;
     Unit unitTo = null;
     if (this.valueUnit != null) {
-      unitFrom = UnitService.create(this.valueUnit);
+//      unitFrom = UnitService.create(this.valueUnit);
       unitTo = state.getObservable().getUnit();
       if (unitTo == null) {
         return null;
@@ -127,28 +116,28 @@ public class ColorScheme {
       String[] labels = new String[map.size()];
       int i = 0;
 
-      StateSummary summary =
-          relative ? Observations.INSTANCE.getStateSummary(state, locator) : null;
-
-      for (String key : map.keySet()) {
-        List<Integer> rgb = map.get(key);
-        double value = Double.parseDouble(key);
-
-        if (relative) {
-          value =
-              summary.getRange().get(0)
-                  + (value * (summary.getRange().get(1) - summary.getRange().get(0)));
-        } else if (unitFrom != null && !unitFrom.equals(unitTo)) {
-          value = unitTo.convert(value, unitFrom).doubleValue();
-        }
-
-        values[i] = value;
-        colors[i] = new Color(rgb.get(0), rgb.get(1), rgb.get(2));
-        labels[i] = key;
-        i++;
-      }
-
-      ret = Triple.of(values, colors, labels);
+////      StateSummary summary =
+////          relative ? Observations.INSTANCE.getStateSummary(state, locator) : null;
+////
+////      for (String key : map.keySet()) {
+////        List<Integer> rgb = map.get(key);
+////        double value = Double.parseDouble(key);
+////
+////        if (relative) {
+////          value =
+////              summary.getRange().get(0)
+////                  + (value * (summary.getRange().get(1) - summary.getRange().get(0)));
+////        } else if (unitFrom != null && !unitFrom.equals(unitTo)) {
+////          value = unitTo.convert(value, unitFrom).doubleValue();
+////        }
+//
+//        values[i] = value;
+//        colors[i] = new Color(rgb.get(0), rgb.get(1), rgb.get(2));
+//        labels[i] = key;
+//        i++;
+//      }
+//
+//      ret = Triple.of(values, colors, labels);
 
     } else if (getCategoryColors().size() > 0) {
       if (state.getType() != Artifact.Type.CONCEPT) {

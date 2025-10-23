@@ -59,6 +59,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * Geotools utilities. All scanners are assumed to scan according to {@link
+ * org.integratedmodelling.klab.api.data.Data.FillCurve#D2_XY}.
+ */
 public class Geotools {
 
   static Map<Concept, Integer> conceptMap = new HashMap<>();

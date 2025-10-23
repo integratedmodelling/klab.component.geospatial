@@ -15,14 +15,14 @@ public class RasterAuxXml {
   public PAMRasterBand rasterBand;
 }
 
-public class PAMRasterBand {
+class PAMRasterBand {
   @XmlAttribute public int band;
 
   @XmlElement(name = "GDALRasterAttributeTable")
   public GDALRasterAttributeTable attributeTable;
 }
 
-public class GDALRasterAttributeTable {
+class GDALRasterAttributeTable {
 
   @XmlElement(name = "FieldDefn")
   public List<FieldDefn> fieldDefnList = new ArrayList<>();
@@ -31,7 +31,7 @@ public class GDALRasterAttributeTable {
   public List<Row> rowList = new ArrayList<>();
 }
 
-public class FieldDefn {
+class FieldDefn {
   @XmlAttribute public int index;
 
   @XmlElement(name = "Name")
@@ -44,7 +44,7 @@ public class FieldDefn {
   public int usage;
 }
 
-public class Row {
+class Row {
   @XmlAttribute public int index;
 
   @XmlElement(name = "F")
