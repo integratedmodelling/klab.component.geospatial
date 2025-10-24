@@ -1,4 +1,4 @@
-//package org.integratedmodelling.geospatial.utils;
+package org.integratedmodelling.geospatial.utils;
 //
 //import org.geotools.brewer.color.ColorBrewer;
 //import org.geotools.coverage.grid.GridCoverage2D;

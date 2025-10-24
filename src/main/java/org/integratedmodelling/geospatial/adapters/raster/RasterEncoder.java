@@ -31,7 +31,6 @@ import javax.xml.bind.Marshaller;
 
 import it.geosolutions.imageio.plugins.tiff.BaselineTIFFTagSet;
 import org.apache.commons.io.FileUtils;
-import org.integratedmodelling.geospatial.utils.Renderer;
 import org.integratedmodelling.klab.api.data.Histogram;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -450,320 +449,320 @@ public enum RasterEncoder {
     return ret;
   }
 
-  public boolean exportCoverage(
-      Observation observation,
-      Scheduler.Event locator,
-      GridCoverage coverage,
-      File file,
-      Parameters<String> options,
-      Scope scope) {
+//  public boolean exportCoverage(
+//      Observation observation,
+//      Scheduler.Event locator,
+//      GridCoverage coverage,
+//      File file,
+//      Parameters<String> options,
+//      Scope scope) {
+//
+//    boolean addStyle = file.getName().endsWith(".zip");
+//    var format = Utils.Files.getFileExtension(file);
+//
+//    boolean samefolder = options.get(OPTION_DO_NOT_CREATE_INDIVIDUAL_FOLDERS, Boolean.FALSE);
+//
+//    //      if (observation instanceof IState
+//    //          && observation.getGeometry().getDimension(Type.SPACE) != null) {
+//    //
+//    //        if (observation.getScale().isSpatiallyDistributed()
+//    //            && observation.getScale().getSpace().isRegular()) {
+//    File dir = Utils.Files.changeExtension(file, "dir");
+//    File out = new File(dir, Utils.Files.getFileName(file));
+//    if (!samefolder) {
+//      dir.mkdirs();
+//    } else {
+//      dir.getAbsoluteFile().getParentFile().mkdirs();
+//      out = new File(dir.getAbsoluteFile().getParentFile(), Utils.Files.getFileName(file));
+//    }
+//    //          GridCoverage2D coverage;
+//    //          IState state = (IState) observation;
+//    var service =
+//        scope.getService(
+//            RuntimeService.class,
+//            s -> s.serviceId().equals(observation.getContextualizationData().getServiceId()));
+//    var dataKey = service.retrieveAsset(observation.getUrn(), locator, DataKey.class, scope);
+//    var colormap = service.retrieveAsset(observation.getUrn(), locator, Colormap.class, scope);
+//    File outQml = Utils.Files.changeExtension(out, "qml");
+//    if (dataKey != null) {
+//      File outAux = Utils.Files.changeExtension(out, "tiff.aux.xml");
+//      File outCpg = Utils.Files.changeExtension(out, "tiff.vat.cpg");
+//      File outDbf = Utils.Files.changeExtension(out, "tiff.vat.dbf");
+//      try {
+//        // write categories aux xml
+//        writeAuxXml(outAux, dataKey);
+//
+//        // write categories dbf
+//        writeAuxDbf(outDbf, dataKey);
+//        FileUtils.writeStringToFile(outCpg, "UTF-8");
+//
+//        // write QGIS style
+//        writeQgisStyleCategories(outQml, colormap, dataKey);
+//      } catch (Exception e1) {
+//        // ignore, since the output still will be a valid tiff
+//        // THIS SHOULD BE LOGGED THOUGH
+//      }
+//
+//      //            int noValue = -2147483648; // Integer.MAX_VALUE;
+//      //            coverage =
+//      //                GeotoolsUtils.INSTANCE.stateToIntCoverage(
+//      //                    (IState) observation, locator, noValue, null);
+//    } else {
+//      // write QGIS style
+//      try {
+//        writeQgisStyleContinuous(outQml, observation, colormap, locator, scope);
+//      } catch (Exception e) {
+//        // ignore, since the output still will be a valid tiff
+//        // THIS SHOULD BE LOGGED THOUGH
+//      }
+//
+//      //            coverage =
+//      //                GeotoolsUtils.INSTANCE.stateToCoverage(
+//      //                    (IState) observation, locator, DataBuffer.TYPE_FLOAT, Float.NaN, true,
+//      // null);
+//    }
+//
+//    if (format.equalsIgnoreCase("tiff")) {
+//      try {
+//
+//        File rasterFile = Utils.Files.changeExtension(out, "tiff");
+//        GeoTiffWriter writer = new GeoTiffWriter(rasterFile);
+//
+//        writer.setMetadataValue(
+//            Integer.toString(BaselineTIFFTagSet.TAG_SOFTWARE),
+//            "k.LAB (www.integratedmodelling.org)");
+//
+//        writer.write(coverage, null);
+//
+//        if (dir != null && addStyle) {
+//          if (!options.get(OPTION_DO_NOT_ZIP_MULTIPLE_FILES, Boolean.FALSE)) {
+//            File zip = Utils.Files.changeExtension(file, "zip");
+//            if (zip.exists()) {
+//              FileUtils.deleteQuietly(zip);
+//            }
+//            Utils.Zip.zip(zip, dir, false, false);
+//            file = zip;
+//            FileUtils.deleteQuietly(dir);
+//          } else {
+//            file = dir;
+//          }
+//        } else {
+//          file = rasterFile;
+//        }
+//        return true;
+//        //              return file;
+//      } catch (IOException e) {
+//        return false;
+//      }
+//    }
+//    //        }
+//    //      }
+//
+//    return false;
+//  }
 
-    boolean addStyle = file.getName().endsWith(".zip");
-    var format = Utils.Files.getFileExtension(file);
-
-    boolean samefolder = options.get(OPTION_DO_NOT_CREATE_INDIVIDUAL_FOLDERS, Boolean.FALSE);
-
-    //      if (observation instanceof IState
-    //          && observation.getGeometry().getDimension(Type.SPACE) != null) {
-    //
-    //        if (observation.getScale().isSpatiallyDistributed()
-    //            && observation.getScale().getSpace().isRegular()) {
-    File dir = Utils.Files.changeExtension(file, "dir");
-    File out = new File(dir, Utils.Files.getFileName(file));
-    if (!samefolder) {
-      dir.mkdirs();
-    } else {
-      dir.getAbsoluteFile().getParentFile().mkdirs();
-      out = new File(dir.getAbsoluteFile().getParentFile(), Utils.Files.getFileName(file));
-    }
-    //          GridCoverage2D coverage;
-    //          IState state = (IState) observation;
-    var service =
-        scope.getService(
-            RuntimeService.class,
-            s -> s.serviceId().equals(observation.getContextualizationData().getServiceId()));
-    var dataKey = service.retrieveAsset(observation.getUrn(), locator, DataKey.class, scope);
-    var colormap = service.retrieveAsset(observation.getUrn(), locator, Colormap.class, scope);
-    File outQml = Utils.Files.changeExtension(out, "qml");
-    if (dataKey != null) {
-      File outAux = Utils.Files.changeExtension(out, "tiff.aux.xml");
-      File outCpg = Utils.Files.changeExtension(out, "tiff.vat.cpg");
-      File outDbf = Utils.Files.changeExtension(out, "tiff.vat.dbf");
-      try {
-        // write categories aux xml
-        writeAuxXml(outAux, dataKey);
-
-        // write categories dbf
-        writeAuxDbf(outDbf, dataKey);
-        FileUtils.writeStringToFile(outCpg, "UTF-8");
-
-        // write QGIS style
-        writeQgisStyleCategories(outQml, colormap, dataKey);
-      } catch (Exception e1) {
-        // ignore, since the output still will be a valid tiff
-        // THIS SHOULD BE LOGGED THOUGH
-      }
-
-      //            int noValue = -2147483648; // Integer.MAX_VALUE;
-      //            coverage =
-      //                GeotoolsUtils.INSTANCE.stateToIntCoverage(
-      //                    (IState) observation, locator, noValue, null);
-    } else {
-      // write QGIS style
-      try {
-        writeQgisStyleContinuous(outQml, observation, colormap, locator, scope);
-      } catch (Exception e) {
-        // ignore, since the output still will be a valid tiff
-        // THIS SHOULD BE LOGGED THOUGH
-      }
-
-      //            coverage =
-      //                GeotoolsUtils.INSTANCE.stateToCoverage(
-      //                    (IState) observation, locator, DataBuffer.TYPE_FLOAT, Float.NaN, true,
-      // null);
-    }
-
-    if (format.equalsIgnoreCase("tiff")) {
-      try {
-
-        File rasterFile = Utils.Files.changeExtension(out, "tiff");
-        GeoTiffWriter writer = new GeoTiffWriter(rasterFile);
-
-        writer.setMetadataValue(
-            Integer.toString(BaselineTIFFTagSet.TAG_SOFTWARE),
-            "k.LAB (www.integratedmodelling.org)");
-
-        writer.write(coverage, null);
-
-        if (dir != null && addStyle) {
-          if (!options.get(OPTION_DO_NOT_ZIP_MULTIPLE_FILES, Boolean.FALSE)) {
-            File zip = Utils.Files.changeExtension(file, "zip");
-            if (zip.exists()) {
-              FileUtils.deleteQuietly(zip);
-            }
-            Utils.Zip.zip(zip, dir, false, false);
-            file = zip;
-            FileUtils.deleteQuietly(dir);
-          } else {
-            file = dir;
-          }
-        } else {
-          file = rasterFile;
-        }
-        return true;
-        //              return file;
-      } catch (IOException e) {
-        return false;
-      }
-    }
-    //        }
-    //      }
-
-    return false;
-  }
-
-  private void writeAuxXml(File auxFile, DataKey dataKey) throws Exception {
-
-    RasterAuxXml rasterAuxXml = new RasterAuxXml();
-    rasterAuxXml.rasterBand = new PAMRasterBand();
-    rasterAuxXml.rasterBand.band = 1;
-    rasterAuxXml.rasterBand.attributeTable = new GDALRasterAttributeTable();
-
-    FieldDefn oidFieldDefn = new FieldDefn();
-    oidFieldDefn.index = 0;
-    oidFieldDefn.name = "OBJECTID";
-    oidFieldDefn.type = 0;
-    oidFieldDefn.usage = 0;
-    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(oidFieldDefn);
-    FieldDefn valueFieldDefn = new FieldDefn();
-    valueFieldDefn.index = 1;
-    valueFieldDefn.name = "value";
-    valueFieldDefn.type = 0;
-    valueFieldDefn.usage = 0;
-    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(valueFieldDefn);
-    FieldDefn labelFieldDefn = new FieldDefn();
-    labelFieldDefn.index = 2;
-    labelFieldDefn.name = "label";
-    labelFieldDefn.type = 2;
-    labelFieldDefn.usage = 0;
-    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(labelFieldDefn);
-
-    List<Pair<Integer, String>> values = dataKey.getAllValues();
-    int index = 0;
-    for (Pair<Integer, String> pair : values) {
-      Integer code = pair.getFirst();
-      String classString = pair.getSecond();
-      Row row = new Row();
-      row.index = index;
-      row.fList.add(String.valueOf(index));
-      row.fList.add(code.toString());
-      row.fList.add(classString);
-      rasterAuxXml.rasterBand.attributeTable.rowList.add(row);
-      index++;
-    }
-
-    JAXBContext context = JAXBContext.newInstance(RasterAuxXml.class);
-    Marshaller marshaller = context.createMarshaller();
-    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-    // StringWriter stringWriter = new StringWriter();
-    marshaller.marshal(rasterAuxXml, auxFile);
-    // System.out.println(stringWriter.toString());
-  }
-
-  private void writeQgisStyleCategories(File qmlFile, Colormap colormap, DataKey dataKey)
-      throws Exception {
-
-    Pair<RasterSymbolizer, String> rasterSymbolizerPair =
-        Renderer.INSTANCE.getRasterSymbolizer(colormap, dataKey);
-    RasterSymbolizer rasterSymbolizer = rasterSymbolizerPair.getFirst();
-    ColorMap colorMap = rasterSymbolizer.getColorMap();
-    ColorMapEntry[] colorMapEntries = colorMap.getColorMapEntries();
-    HashMap<String, String> label2ColorMap = new HashMap<>();
-    for (ColorMapEntry colorMapEntry : colorMapEntries) {
-      String label = colorMapEntry.getLabel();
-      String color = colorMapEntry.getColor().evaluate(null, String.class);
-      label2ColorMap.put(label, color);
-    }
-
-    String ind = "\t";
-    StringBuilder sb = new StringBuilder();
-    sb.append("<qgis>\n");
-    sb.append(ind).append("<pipe>\n");
-    sb.append(ind)
-        .append(ind)
-        .append(
-            "<rasterrenderer band=\"1\" type=\"paletted\" alphaBand=\"-1\" opacity=\"1\" nodataColor=\"\">\n");
-    sb.append(ind).append(ind).append(ind).append("<colorPalette>\n");
-    List<Pair<Integer, String>> values = dataKey.getAllValues();
-    for (Pair<Integer, String> pair : values) {
-      sb.append(ind).append(ind).append(ind).append(ind);
-
-      Integer code = pair.getFirst();
-      String classString = pair.getSecond();
-      String color = label2ColorMap.get(classString);
-
-      // <paletteEntry value="0" alpha="255" color="#7e7fef" label="cat0"/>
-      sb.append(
-          "<paletteEntry value=\""
-              + code
-              + "\" alpha=\"255\" color=\""
-              + color
-              + "\" label=\""
-              + classString
-              + "\"/>\n");
-    }
-    sb.append(ind).append(ind).append(ind).append("</colorPalette>\n");
-    sb.append(ind).append(ind).append("</rasterrenderer>\n");
-    sb.append(ind).append("</pipe>\n");
-    sb.append("</qgis>\n");
-
-    FileUtils.writeStringToFile(qmlFile, sb.toString());
-  }
-
-  private void writeQgisStyleContinuous(
-      File qmlFile,
-      Observation observation,
-      Colormap colormap,
-      Scheduler.Event locator,
-      Scope scope)
-      throws Exception {
-
-    var service =
-        scope.getService(
-            RuntimeService.class,
-            s -> s.serviceId().equals(observation.getContextualizationData().getServiceId()));
-    Histogram histogram =
-        service.retrieveAsset(observation.getUrn(), locator, Histogram.class, scope);
-
-    double min = histogram.getMin();
-    double max = histogram.getMax();
-
-    List<String> labels = Arrays.asList("" + min, "" + max);
-    List<String> colors = Arrays.asList("#FFFFFF", "#000000");
-    if (colormap != null) {
-      labels = colormap.getEntries().stream().map(Colormap.Entry::getLabel).toList();
-      colors = colormap.getEntries().stream().map(Colormap.Entry::getColor).toList();
-    }
-
-    String ind = "\t";
-    StringBuilder sb = new StringBuilder();
-    sb.append("<qgis>\n");
-    sb.append(ind).append("<pipe>\n");
-    sb.append(ind)
-        .append(ind)
-        .append("<rasterrenderer band=\"1\" type=\"singlebandpseudocolor\"")
-        .append(" classificationMax=\"")
-        .append(max)
-        .append("\"")
-        .append(" classificationMin=\"")
-        .append(min)
-        .append("\"")
-        .append(" alphaBand=\"-1\" opacity=\"1\" nodataColor=\"\">\n");
-
-    sb.append(ind).append(ind).append(ind).append("<rastershader>\n");
-    sb.append(ind)
-        .append(ind)
-        .append(ind)
-        .append(ind)
-        .append("<colorrampshader ")
-        .append(" minimumValue=\"")
-        .append(min)
-        .append("\"")
-        .append(" maximumValue=\"")
-        .append(max)
-        .append("\"")
-        .append(" colorRampType=\"INTERPOLATED\"")
-        .append(" classificationMode=\"1\"")
-        .append(" clip=\"0\"")
-        .append(">\n");
-    for (int i = 0; i < labels.size(); i++) {
-      sb.append(ind).append(ind).append(ind).append(ind).append(ind);
-
-      String label = labels.get(i);
-      String color = colors.get(i);
-
-      // <item color="#d7191c" value="846.487670898438" label="846,4877" alpha="255"/>
-      sb.append(
-          "<item color=\""
-              + color
-              + "\" value=\""
-              + label
-              + "\" label=\""
-              + label
-              + "\" alpha=\"255\"/>\n");
-    }
-    sb.append(ind).append(ind).append(ind).append(ind).append("</colorrampshader>\n");
-    sb.append(ind).append(ind).append(ind).append("</rastershader>\n");
-
-    sb.append(ind).append(ind).append("</rasterrenderer>\n");
-    sb.append(ind).append("</pipe>\n");
-    sb.append("</qgis>\n");
-
-    Utils.Files.writeStringToFile(sb.toString(), qmlFile);
-  }
-
-  private boolean writeAuxDbf(File auxDbfFile, DataKey dataKey) throws Exception {
-
-    DbaseFileHeader header = new DbaseFileHeader();
-    header.addColumn("Value", 'N', 10, 0);
-    int stringLimit = 100;
-    header.addColumn("Label", 'C', stringLimit, 0);
-
-    List<Pair<Integer, String>> values = dataKey.getAllValues();
-    header.setNumRecords(values.size());
-
-    try (FileOutputStream fout = new FileOutputStream(auxDbfFile)) {
-      DbaseFileWriter dbf = new DbaseFileWriter(header, fout.getChannel(), StandardCharsets.UTF_8);
-      for (Pair<Integer, String> pair : values) {
-        Integer code = pair.getFirst();
-        String classString = pair.getSecond();
-        if (classString.length() > stringLimit) {
-          classString = classString.substring(0, stringLimit);
-        }
-        dbf.write(new Object[] {code, classString});
-      }
-      dbf.close();
-    }
-    return true;
-  }
+//  private void writeAuxXml(File auxFile, DataKey dataKey) throws Exception {
+//
+//    RasterAuxXml rasterAuxXml = new RasterAuxXml();
+//    rasterAuxXml.rasterBand = new PAMRasterBand();
+//    rasterAuxXml.rasterBand.band = 1;
+//    rasterAuxXml.rasterBand.attributeTable = new GDALRasterAttributeTable();
+//
+//    FieldDefn oidFieldDefn = new FieldDefn();
+//    oidFieldDefn.index = 0;
+//    oidFieldDefn.name = "OBJECTID";
+//    oidFieldDefn.type = 0;
+//    oidFieldDefn.usage = 0;
+//    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(oidFieldDefn);
+//    FieldDefn valueFieldDefn = new FieldDefn();
+//    valueFieldDefn.index = 1;
+//    valueFieldDefn.name = "value";
+//    valueFieldDefn.type = 0;
+//    valueFieldDefn.usage = 0;
+//    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(valueFieldDefn);
+//    FieldDefn labelFieldDefn = new FieldDefn();
+//    labelFieldDefn.index = 2;
+//    labelFieldDefn.name = "label";
+//    labelFieldDefn.type = 2;
+//    labelFieldDefn.usage = 0;
+//    rasterAuxXml.rasterBand.attributeTable.fieldDefnList.add(labelFieldDefn);
+//
+//    List<Pair<Integer, String>> values = dataKey.getAllValues();
+//    int index = 0;
+//    for (Pair<Integer, String> pair : values) {
+//      Integer code = pair.getFirst();
+//      String classString = pair.getSecond();
+//      Row row = new Row();
+//      row.index = index;
+//      row.fList.add(String.valueOf(index));
+//      row.fList.add(code.toString());
+//      row.fList.add(classString);
+//      rasterAuxXml.rasterBand.attributeTable.rowList.add(row);
+//      index++;
+//    }
+//
+//    JAXBContext context = JAXBContext.newInstance(RasterAuxXml.class);
+//    Marshaller marshaller = context.createMarshaller();
+//    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+//    // StringWriter stringWriter = new StringWriter();
+//    marshaller.marshal(rasterAuxXml, auxFile);
+//    // System.out.println(stringWriter.toString());
+//  }
+//
+//  private void writeQgisStyleCategories(File qmlFile, Colormap colormap, DataKey dataKey)
+//      throws Exception {
+//
+//    Pair<RasterSymbolizer, String> rasterSymbolizerPair =
+//        Renderer.INSTANCE.getRasterSymbolizer(colormap, dataKey);
+//    RasterSymbolizer rasterSymbolizer = rasterSymbolizerPair.getFirst();
+//    ColorMap colorMap = rasterSymbolizer.getColorMap();
+//    ColorMapEntry[] colorMapEntries = colorMap.getColorMapEntries();
+//    HashMap<String, String> label2ColorMap = new HashMap<>();
+//    for (ColorMapEntry colorMapEntry : colorMapEntries) {
+//      String label = colorMapEntry.getLabel();
+//      String color = colorMapEntry.getColor().evaluate(null, String.class);
+//      label2ColorMap.put(label, color);
+//    }
+//
+//    String ind = "\t";
+//    StringBuilder sb = new StringBuilder();
+//    sb.append("<qgis>\n");
+//    sb.append(ind).append("<pipe>\n");
+//    sb.append(ind)
+//        .append(ind)
+//        .append(
+//            "<rasterrenderer band=\"1\" type=\"paletted\" alphaBand=\"-1\" opacity=\"1\" nodataColor=\"\">\n");
+//    sb.append(ind).append(ind).append(ind).append("<colorPalette>\n");
+//    List<Pair<Integer, String>> values = dataKey.getAllValues();
+//    for (Pair<Integer, String> pair : values) {
+//      sb.append(ind).append(ind).append(ind).append(ind);
+//
+//      Integer code = pair.getFirst();
+//      String classString = pair.getSecond();
+//      String color = label2ColorMap.get(classString);
+//
+//      // <paletteEntry value="0" alpha="255" color="#7e7fef" label="cat0"/>
+//      sb.append(
+//          "<paletteEntry value=\""
+//              + code
+//              + "\" alpha=\"255\" color=\""
+//              + color
+//              + "\" label=\""
+//              + classString
+//              + "\"/>\n");
+//    }
+//    sb.append(ind).append(ind).append(ind).append("</colorPalette>\n");
+//    sb.append(ind).append(ind).append("</rasterrenderer>\n");
+//    sb.append(ind).append("</pipe>\n");
+//    sb.append("</qgis>\n");
+//
+//    FileUtils.writeStringToFile(qmlFile, sb.toString());
+//  }
+//
+//  private void writeQgisStyleContinuous(
+//      File qmlFile,
+//      Observation observation,
+//      Colormap colormap,
+//      Scheduler.Event locator,
+//      Scope scope)
+//      throws Exception {
+//
+//    var service =
+//        scope.getService(
+//            RuntimeService.class,
+//            s -> s.serviceId().equals(observation.getContextualizationData().getServiceId()));
+//    Histogram histogram =
+//        service.retrieveAsset(observation.getUrn(), locator, Histogram.class, scope);
+//
+//    double min = histogram.getMin();
+//    double max = histogram.getMax();
+//
+//    List<String> labels = Arrays.asList("" + min, "" + max);
+//    List<String> colors = Arrays.asList("#FFFFFF", "#000000");
+//    if (colormap != null) {
+//      labels = colormap.getEntries().stream().map(Colormap.Entry::getLabel).toList();
+//      colors = colormap.getEntries().stream().map(Colormap.Entry::getColor).toList();
+//    }
+//
+//    String ind = "\t";
+//    StringBuilder sb = new StringBuilder();
+//    sb.append("<qgis>\n");
+//    sb.append(ind).append("<pipe>\n");
+//    sb.append(ind)
+//        .append(ind)
+//        .append("<rasterrenderer band=\"1\" type=\"singlebandpseudocolor\"")
+//        .append(" classificationMax=\"")
+//        .append(max)
+//        .append("\"")
+//        .append(" classificationMin=\"")
+//        .append(min)
+//        .append("\"")
+//        .append(" alphaBand=\"-1\" opacity=\"1\" nodataColor=\"\">\n");
+//
+//    sb.append(ind).append(ind).append(ind).append("<rastershader>\n");
+//    sb.append(ind)
+//        .append(ind)
+//        .append(ind)
+//        .append(ind)
+//        .append("<colorrampshader ")
+//        .append(" minimumValue=\"")
+//        .append(min)
+//        .append("\"")
+//        .append(" maximumValue=\"")
+//        .append(max)
+//        .append("\"")
+//        .append(" colorRampType=\"INTERPOLATED\"")
+//        .append(" classificationMode=\"1\"")
+//        .append(" clip=\"0\"")
+//        .append(">\n");
+//    for (int i = 0; i < labels.size(); i++) {
+//      sb.append(ind).append(ind).append(ind).append(ind).append(ind);
+//
+//      String label = labels.get(i);
+//      String color = colors.get(i);
+//
+//      // <item color="#d7191c" value="846.487670898438" label="846,4877" alpha="255"/>
+//      sb.append(
+//          "<item color=\""
+//              + color
+//              + "\" value=\""
+//              + label
+//              + "\" label=\""
+//              + label
+//              + "\" alpha=\"255\"/>\n");
+//    }
+//    sb.append(ind).append(ind).append(ind).append(ind).append("</colorrampshader>\n");
+//    sb.append(ind).append(ind).append(ind).append("</rastershader>\n");
+//
+//    sb.append(ind).append(ind).append("</rasterrenderer>\n");
+//    sb.append(ind).append("</pipe>\n");
+//    sb.append("</qgis>\n");
+//
+//    Utils.Files.writeStringToFile(sb.toString(), qmlFile);
+//  }
+//
+//  private boolean writeAuxDbf(File auxDbfFile, DataKey dataKey) throws Exception {
+//
+//    DbaseFileHeader header = new DbaseFileHeader();
+//    header.addColumn("Value", 'N', 10, 0);
+//    int stringLimit = 100;
+//    header.addColumn("Label", 'C', stringLimit, 0);
+//
+//    List<Pair<Integer, String>> values = dataKey.getAllValues();
+//    header.setNumRecords(values.size());
+//
+//    try (FileOutputStream fout = new FileOutputStream(auxDbfFile)) {
+//      DbaseFileWriter dbf = new DbaseFileWriter(header, fout.getChannel(), StandardCharsets.UTF_8);
+//      for (Pair<Integer, String> pair : values) {
+//        Integer code = pair.getFirst();
+//        String classString = pair.getSecond();
+//        if (classString.length() > stringLimit) {
+//          classString = classString.substring(0, stringLimit);
+//        }
+//        dbf.write(new Object[] {code, classString});
+//      }
+//      dbf.close();
+//    }
+//    return true;
+//  }
 }
