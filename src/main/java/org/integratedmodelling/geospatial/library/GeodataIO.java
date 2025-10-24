@@ -1,32 +1,28 @@
 package org.integratedmodelling.geospatial.library;
 
-import it.geosolutions.imageio.pam.PAMDataset;
 import it.geosolutions.imageio.plugins.tiff.BaselineTIFFTagSet;
 import java.awt.image.DataBuffer;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.List;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileWriter;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.integratedmodelling.geospatial.adapters.raster.*;
-import org.integratedmodelling.geospatial.adapters.raster.RasterAuxXml;
 import org.integratedmodelling.geospatial.utils.Geotools;
 import org.integratedmodelling.klab.api.collections.Pair;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
-import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.KlabAsset;
 import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.runtime.extension.Library;
+import org.integratedmodelling.klab.api.services.runtime.extension.Reference;
 import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
 
@@ -45,11 +41,29 @@ public class GeodataIO {
       fillCurve = Data.FillCurve.D2_XY, // force use of XY across the board
       knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
       mediaType = "image/tiff;application=geotiff",
-      description = "Export an observation as HTML page visualizing it")
-  public InputStream exportGeotiff(
+      description = "Export a numeric observation to a raw data GeoTiff")
+  public InputStream exportGeotiffContinuous(
       Resource resource,
       Observation observation,
       Storage.DoubleScanner scanner,
+      ContextScope scope,
+      BaseService service) {
+    try {
+      var file = File.createTempFile("klab", ".tiff");
+      exportObservation(file, observation, scanner, "tiff", scope);
+      return new FileInputStream(file);
+    } catch (IOException e) {
+      scope.error(e);
+      throw new KlabIOException(e);
+    }
+  }
+
+  @Reference.Exporter(name = "geotiff")
+  public InputStream exportGeotiffCategorical(
+      Resource resource,
+      Observation observation,
+      Storage.KeyScanner scanner,
+      DataKey dataKey,
       ContextScope scope,
       BaseService service) {
     try {
