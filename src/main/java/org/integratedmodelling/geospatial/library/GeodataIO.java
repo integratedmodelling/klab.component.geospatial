@@ -37,17 +37,14 @@ connected Geotiff: if so, use that, otherwise produce and cache the output.
 public class GeodataIO {
   @Exporter(
       schema = "geotiff",
-      geometry = "S2",
-      fillCurve = Data.FillCurve.D2_XY, // force use of XY across the board
+      geometry =
+          "S2", // will be used on anything compatible with S2 (any other dimension must be size 1)
+      fillCurve = Data.FillCurve.D2_XY, // force use of XY across the board, adapting as needed
       knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
       mediaType = "image/tiff;application=geotiff",
       description = "Export a numeric observation to a raw data GeoTiff")
   public InputStream exportGeotiffContinuous(
-      Resource resource,
-      Observation observation,
-      Storage.DoubleScanner scanner,
-      ContextScope scope,
-      BaseService service) {
+      Observation observation, Storage.DoubleScanner scanner, ContextScope scope) {
     try {
       var file = File.createTempFile("klab", ".tiff");
       exportObservation(file, observation, scanner, "tiff", scope);
@@ -58,14 +55,9 @@ public class GeodataIO {
     }
   }
 
-  @Reference.Exporter(name = "geotiff")
+  @Reference.Exporter(name = "geotiff") // TODO support this!
   public InputStream exportGeotiffCategorical(
-      Resource resource,
-      Observation observation,
-      Storage.KeyScanner scanner,
-      DataKey dataKey,
-      ContextScope scope,
-      BaseService service) {
+      Observation observation, Storage.KeyScanner scanner, DataKey dataKey, ContextScope scope) {
     try {
       var file = File.createTempFile("klab", ".tiff");
       exportObservation(file, observation, scanner, "tiff", scope);
@@ -152,7 +144,7 @@ public class GeodataIO {
 
       coverage =
           Geotools.stateToCoverage(
-              observation, scanner, DataBuffer.TYPE_FLOAT, Float.NaN, scope, true);
+              observation, scanner, DataBuffer.TYPE_FLOAT, Float.NaN, scope, false);
     }
 
     if (format.equalsIgnoreCase("tiff")) {
