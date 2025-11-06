@@ -43,7 +43,7 @@ public class STACParser {
         var collectionUrl = getLinkTo(collectionData, "self").get();
         var collectionId = collectionData.getString("id");
         var itemHrefs = getLinksTo(collectionData, "item");
-        itemHrefs = itemHrefs.stream().map(href -> getUrlOfItem(collectionUrl, collectionId, href)).collect(Collectors.toUnmodifiableList());
+        itemHrefs = itemHrefs.stream().map(href -> getUrlOfItem(collectionUrl, collectionId, href)).toList();
 
         return itemHrefs.stream().map(i -> {
             try {
@@ -67,14 +67,14 @@ public class STACParser {
         if (!json.has("keywords")) {
             return null;
         }
-        List<String> keywords = json.getJSONArray("keywords").toList();
+        List keywords = json.getJSONArray("keywords").toList();
         return keywords.isEmpty() ? null : String.join(",", keywords);
     }
 
     final private static Set<String> DOI_KEYS_IN_STAC_JSON = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
 
     public static String readDOI(JSONObject json) {
-        Optional<String> doi = DOI_KEYS_IN_STAC_JSON.stream().filter(key -> json.has(key)).map(key -> json.getString(key)).findFirst();
+        Optional<String> doi = DOI_KEYS_IN_STAC_JSON.stream().filter(json::has).map(json::getString).findFirst();
         return doi.orElse(null);
     }
 
@@ -144,14 +144,20 @@ public class STACParser {
     }
      */
 
-    /**
-     * Reads the collection data and extracts the link pointing to the root element (the catalog).
-     *
-     * @param collectionUrl
-     * @param collectionId
-     * @param collectionData
-     * @return url of the catalog
-     */
+    public static String getCatalogUrl(JSONObject collection) {
+        var url = getLinkTo(collection, "self").orElseThrow(() -> new KlabResourceAccessException("No self relation in this resource"));
+        var id = collection.getString("id");
+        return getCatalogUrl(url, id, collection);
+    }
+
+        /**
+         * Reads the collection data and extracts the link pointing to the root element (the catalog).
+         *
+         * @param collectionUrl
+         * @param collectionId
+         * @param collectionData
+         * @return url of the catalog
+         */
     public static String getCatalogUrl(String collectionUrl, String collectionId, JSONObject collectionData) {
         // The URL of the catalog is the root
         if (!collectionData.has("links")) {
@@ -222,7 +228,7 @@ public class STACParser {
         }
 
         JSONObject searchResponse = response.getBody().getObject();
-        if (searchResponse.getJSONArray("features").length() == 0) {
+        if (searchResponse.getJSONArray("features").isEmpty()) {
             throw new KlabResourceAccessException(); // TODO set message there is no feature
         }
 

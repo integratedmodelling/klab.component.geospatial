@@ -2,11 +2,14 @@ package org.integratedmodelling.geospatial.adapters;
 
 import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.hortonmachine.gears.io.stac.HMStacCollection;
+import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.STACManager;
 import org.integratedmodelling.geospatial.adapters.stac.STACParser;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Metadata;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
@@ -19,6 +22,7 @@ import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdap
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -78,23 +82,30 @@ public class STACAdapter {
         resource, Parameters.create(urn.getParameters()), coverage, geometry, builder);
   }
 
-  /**
-   * STAC may provide all sorts of things, so the decision needs to look at the entire resource
-   * parameterization.
-   *
-   * @param resourceUrn
-   * @return
-   */
   @ResourceAdapter.Type
   public Artifact.Type getType(Resource resourceUrn) {
     String collection = resourceUrn.getParameters().get("collection", String.class);
     var collectionData = STACParser.requestMetadata(collection, "collection");
     if (!resourceUrn.getParameters().contains("asset")
-        || resourceUrn.getParameters().get("asset", String.class).isEmpty()) {
+            || resourceUrn.getParameters().get("asset", String.class).isEmpty()) {
       // TODO get the assets from the links
       throw new KlabUnimplementedException("STAC adapter: can't handle static catalogs");
     }
     String assetId = resourceUrn.getParameters().get("asset", String.class);
+    return getType(collection, assetId);
+  }
+
+    /**
+     * STAC may provide all sorts of things, so the decision needs to look at the entire resource
+     * parameterization.
+     *
+     * @param collection URL of the collection
+     * @param assetId ID of the asset
+     *
+     * @return
+     */
+  @ResourceAdapter.Type
+  public static Artifact.Type getType(String collection, String assetId) {
     JSONObject itemsData = null;
     try {
       // itemsData = StacParser.getSampleItem(collectionData); TODO
@@ -136,7 +147,7 @@ public class STACAdapter {
   }
 
   @Importer(
-      schema = "stac.import",
+      schema = "stac.import.v2",
       knowledgeClass = KlabAsset.KnowledgeClass.RESOURCE,
       description = "Imports a STAC resource",
       properties = {
@@ -151,8 +162,38 @@ public class STACAdapter {
             description = "Asset ID."),
         //
       })
-  public static ResourceSet importSTAC() {
+  public static Resource importSTAC(Parameters<String> properties) {
     // TODO
-    return null;
+    var collectionUrl = properties.get("collection", String.class);
+    var assetId = properties.get("asset", String.class);
+
+    var urn = collectionUrl.substring(collectionUrl.lastIndexOf("/") + 1) + "-" + assetId;
+
+    var collectionData = STACParser.requestMetadata(collectionUrl, "collection");
+
+    var builder =
+            Resource.builder(urn)
+                    //.withServiceId(service.serviceId())
+                    .withParameters(properties)
+                    .withAdapterType("stac")
+                    .withType(getType(collectionUrl, assetId)); // We need to know if it is a raster or a vector or whatever
+
+    // TODO add more metadata
+    builder.withMetadata(Metadata.IM_KEYWORDS, STACParser.readKeywords(collectionData))
+            .withMetadata(Metadata.DC_NAME, STACParser.readTitle(collectionData))
+            .withMetadata("DOI", STACParser.readDOI(collectionData))
+            .withMetadata("license", STACParser.readLicense(collectionData));
+
+    var collectionId = collectionData.getString("id");
+
+    String catalogUrl = STACParser.getCatalogUrl(collectionData);
+    HMStacManager manager = new HMStacManager(catalogUrl, null);
+
+    // builder.withGeometry();
+    if (false) { // Manage the errors
+      ResourceSet.empty(
+              Notification.error("Cannot import the given STAC resource"));
+    }
+    return builder.build();
   }
 }
