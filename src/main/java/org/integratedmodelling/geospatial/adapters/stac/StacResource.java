@@ -3,6 +3,7 @@ package org.integratedmodelling.geospatial.adapters.stac;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 
@@ -17,9 +18,22 @@ import java.util.Set;
  */
 public class StacResource {
     private class Catalog {
-        String url;
-        String id;
-        JSONObject data;
+        private final String url;
+        private final String id;
+        private final JSONObject data;
+        //private final String searchEndpoint;
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public JSONObject getData() {
+            return data;
+        }
 
         public Catalog(String url) {
             this.url = url;
@@ -33,20 +47,33 @@ public class StacResource {
             }
 
             this.id = data.getString("id");
+
+            // TODO add search endpoint
         }
     }
 
     private class Collection {
-        private String url;
-        private String id;
-        private JSONObject data;
-        private Catalog catalog;
+        private final String url;
+        private final String id;
+        private final JSONObject data;
+        private final Catalog catalog;
 
         private Optional<String> keywords;
         private Optional<String> doi;
         private Optional<String> description;
+        private Optional<String> license;
 
         final private static Set<String> DOI_KEYS = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
+
+        final private static Set<String> SUPPORTED_RASTER_MEDIA_TYPE =
+                Set.of(
+                        "image/tiff;application=geotiff",
+                        "image/vnd.stac.geotiff",
+                        "image/tiff;application=geotiff;profile=cloud-optimized",
+                        "image/vnd.stac.geotiff;profile=cloud-optimized",
+                        "image/vnd.stac.geotiff;cloud-optimized=true");
+
+        final private static Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json");
 
         public Collection(String url) {
             this.url = url;
@@ -61,7 +88,7 @@ public class StacResource {
 
             this.id = data.getString("id");
 
-            // TODO is this the best wayto set catalog?
+            // TODO is this the best way to set catalog?
             String catalogUrl;
             try {
                 catalogUrl = getCatalogUrl();
@@ -70,6 +97,22 @@ public class StacResource {
             }
 
             this.catalog = new Catalog(catalogUrl);
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public JSONObject getData() {
+            return data;
+        }
+
+        public Catalog getCatalog() {
+            return catalog;
         }
 
         public Optional<String> getKeywords() {
@@ -104,6 +147,31 @@ public class StacResource {
                     .findFirst().orElseThrow(() -> new KlabResourceAccessException("Cannot find the Catalog of collection " + collection.getId()));
         }
 
+        public Optional<String> getLicense() {
+            if (license.isPresent()) {
+                return license;
+            }
+
+            if (!data.has("links")) {
+                return Optional.empty();
+            }
+            JSONArray links = data.getJSONArray("links");
+            for (int i = 0; i < links.length(); i++) {
+                JSONObject link = links.getJSONObject(i);
+                if (!link.has("rel") || !link.getString("rel").equals("license")) {
+                    continue;
+                }
+                // A link to the license is preferred
+                if (link.has("href")) {
+                    return Optional.of(link.getString("href"));
+                }
+                if (link.has("title")) {
+                    link.getString("title");
+                }
+            }
+            return Optional.empty();
+        }
+
     }
 
     private class Asset {
@@ -111,7 +179,21 @@ public class StacResource {
         String type;
         String href;
 
-        // TODO
+        public Asset() {
+            // TODO
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getHref() {
+            return href;
+        }
     }
 
     private Catalog catalog;
