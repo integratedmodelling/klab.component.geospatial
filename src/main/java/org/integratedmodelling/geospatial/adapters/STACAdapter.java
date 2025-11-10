@@ -5,7 +5,6 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.STACManager;
-import org.integratedmodelling.geospatial.adapters.stac.STACParser;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
@@ -87,15 +86,8 @@ public class STACAdapter {
 
   @ResourceAdapter.Type
   public Artifact.Type getType(Resource resourceUrn) {
-    String collection = resourceUrn.getParameters().get("collection", String.class);
-    var collectionData = STACParser.requestMetadata(collection, "collection");
-    if (!resourceUrn.getParameters().contains("asset")
-            || resourceUrn.getParameters().get("asset", String.class).isEmpty()) {
-      // TODO get the assets from the links
-      throw new KlabUnimplementedException("STAC adapter: can't handle static catalogs");
-    }
-    String assetId = resourceUrn.getParameters().get("asset", String.class);
-    return getType(collection, assetId);
+    // TODO get the data from the resource. For now, raster
+    return Artifact.Type.NUMBER;
   }
 
     /**
@@ -136,8 +128,9 @@ public class STACAdapter {
       Set.of("type", "stac_version", "id", "description", "license", "extent", "links");
 
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
-  public boolean validateLocalImport(String collection) {
-    var collectionData = STACParser.requestMetadata(collection, "collection");
+  public boolean validateLocalImport(String collectionUrl) {
+    var collection = new StacResource.Collection(collectionUrl);
+    var collectionData = collection.getData();
     // For now we validate that it is a proper STAC collection
     boolean hasRequiredFields = requiredFieldsOfCollection.stream().anyMatch(collectionData::has);
     if (!hasRequiredFields) {

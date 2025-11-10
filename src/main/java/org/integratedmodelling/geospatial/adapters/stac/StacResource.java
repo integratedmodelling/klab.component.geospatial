@@ -66,6 +66,7 @@ public class StacResource {
 
         final private static Set<String> DOI_KEYS = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
 
+        // https://github.com/radiantearth/stac-spec/blob/master/best-practices.md#common-media-types-in-stac
         final private static Set<String> SUPPORTED_RASTER_MEDIA_TYPE =
                 Set.of(
                         "image/tiff;application=geotiff",
@@ -73,8 +74,29 @@ public class StacResource {
                         "image/tiff;application=geotiff;profile=cloud-optimized",
                         "image/vnd.stac.geotiff;profile=cloud-optimized",
                         "image/vnd.stac.geotiff;cloud-optimized=true");
-
         final private static Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json");
+
+        // TODO add vector types
+        private static final Set<String> SUPPORTED_MEDIA_EXTENSION = Set.of(".tif", ".tiff");
+
+
+        /**
+         * Check if the MIME value is supported.
+         *
+         * @param asset as JSON
+         * @return true if the media type is supported.
+         */
+        private static boolean isSupportedMediaType(JSONObject asset) {
+            if (!asset.has("type")) {
+                String href = asset.getString("href");
+
+                return SUPPORTED_MEDIA_EXTENSION.stream().anyMatch(ex -> href.toLowerCase().endsWith(ex));
+            }
+
+            return SUPPORTED_RASTER_MEDIA_TYPE.contains(asset.getString("type").replace(" ", "").toLowerCase())
+                    || SUPPORTED_VECTOR_MEDIA_TYPE.contains(asset.getString("type").replace(" ", "").toLowerCase());
+        }
+
 
         public Collection(String url) {
             this.url = url;
