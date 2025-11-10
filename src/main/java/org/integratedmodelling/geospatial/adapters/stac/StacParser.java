@@ -15,9 +15,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-public class STACParser {
+public class StacParser {
 
     public static JSONObject requestMetadata(String collectionUrl, String type) {
         HttpResponse<JsonNode> response = Unirest.get(collectionUrl).asJson();
@@ -47,7 +46,7 @@ public class STACParser {
 
         return itemHrefs.stream().map(i -> {
             try {
-                return STACParser.getItemAsFeature(i);
+                return StacParser.getItemAsFeature(i);
             } catch (Exception e) {
                 throw new KlabValidationException("Item at " + i + " cannot be parsed.");
             }
@@ -58,39 +57,6 @@ public class STACParser {
         HttpResponse<JsonNode> response = Unirest.get(itemUrl).asJson();
         return GeoJSONReader.parseFeature(response.getBody().toString());
     }
-
-    public static String readDescription(JSONObject json) {
-        return json.getString("description");
-    }
-
-    public static String readKeywords(JSONObject json) {
-        if (!json.has("keywords")) {
-            return null;
-        }
-        List keywords = json.getJSONArray("keywords").toList();
-        return keywords.isEmpty() ? null : String.join(",", keywords);
-    }
-
-    final private static Set<String> DOI_KEYS_IN_STAC_JSON = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
-
-    public static String readDOI(JSONObject json) {
-        Optional<String> doi = DOI_KEYS_IN_STAC_JSON.stream().filter(json::has).map(json::getString).findFirst();
-        return doi.orElse(null);
-    }
-
-    public static String readTitle(JSONObject json) {
-        return json.getString("title");
-    }
-
-    // TODO check if the DOIreader should come here
-    /*
-    public static String readDOIAuthors(String doi) {
-        Set<String> authorsSet = DOIReader.readAuthors(doi);
-        StringBuilder authors = new StringBuilder();
-        authorsSet.forEach(a -> authors.append(a).append("\n"));
-        return authors.toString().trim();
-    }
-     */
 
     /**
      * Validates of the artifact contains a link to an element of type ref
@@ -111,27 +77,6 @@ public class STACParser {
         return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).toList();
     }
 
-    public static String readLicense(JSONObject collection) {
-        if (!collection.has("links")) {
-            return null;
-        }
-        JSONArray links = collection.getJSONArray("links");
-        for (int i = 0; i < links.length(); i++) {
-            JSONObject link = links.getJSONObject(i);
-            if (!link.has("rel") || !link.getString("rel").equals("license")) {
-                continue;
-            }
-            // A link to the license is preferred
-            if (link.has("href")) {
-                return link.getString("href");
-            }
-            if (link.has("title")) {
-                link.getString("title");
-            }
-        }
-        return null;
-    }
-
     /*
     public static Type inferValueType(String key) {
         if (StringUtils.isNumeric(key)) {
@@ -143,12 +88,6 @@ public class STACParser {
         return Type.TEXT;
     }
      */
-
-    public static String getCatalogUrl(JSONObject collection) {
-        var url = getLinkTo(collection, "self").orElseThrow(() -> new KlabResourceAccessException("No self relation in this resource"));
-        var id = collection.getString("id");
-        return getCatalogUrl(url, id, collection);
-    }
 
         /**
          * Reads the collection data and extracts the link pointing to the root element (the catalog).
@@ -190,12 +129,12 @@ public class STACParser {
      */
     public static JSONObject readAssetsFromCollection(String collectionUrl, JSONObject collection) throws KlabResourceAccessException {
         String collectionId = collection.getString("id");
-        String catalogUrl = STACParser.getCatalogUrl(collectionUrl, collectionId, collection);
-        JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
+        String catalogUrl = StacParser.getCatalogUrl(collectionUrl, collectionId, collection);
+        JSONObject catalogData = StacParser.requestMetadata(catalogUrl, "catalog");
 
-        Optional<String> searchEndpoint = STACParser.containsLinkTo(catalogData, "search")
-                ? STACParser.getLinkTo(catalogData, "search")
-                : STACParser.getLinkTo(collection, "search");
+        Optional<String> searchEndpoint = StacParser.containsLinkTo(catalogData, "search")
+                ? StacParser.getLinkTo(catalogData, "search")
+                : StacParser.getLinkTo(collection, "search");
 
         // Static catalogs should have their assets on the Collection
         if (searchEndpoint.isEmpty()) {
@@ -204,7 +143,7 @@ public class STACParser {
                 return collection.getJSONObject("assets");
             }
             // Try to get the assets from a link that has type `item`
-            Optional<String> itemHref = STACParser.getLinkTo(collection, "item");
+            Optional<String> itemHref = StacParser.getLinkTo(collection, "item");
             if (itemHref.isEmpty()) {
                 throw new KlabIOException("Cannot find items at STAC collection \"" + collectionUrl + "\"");
             }
@@ -212,7 +151,7 @@ public class STACParser {
                     ? collectionUrl.replace("collection.json", "") + itemHref.get().replace("./", "")
                     : itemHref.get();
             // TODO get assets from the item
-            JSONObject itemData = STACParser.requestMetadata(itemUrl, "feature");
+            JSONObject itemData = StacParser.requestMetadata(itemUrl, "feature");
             if (itemData.has("assets")) {
                 return itemData.getJSONObject("assets");
             }

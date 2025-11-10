@@ -34,7 +34,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class STACManager {
+public class StacEngine {
 
   public static Artifact.Type getArtifactType(JSONObject asset) {
     if (!asset.has("type")) {
@@ -50,11 +50,8 @@ public class STACManager {
 
   public static GridCoverage2D getGridCoverage2D(
       Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
-    String collectionUrl = resource.getParameters().get("collection", String.class);
-    JSONObject collectionData = STACParser.requestMetadata(collectionUrl, "collection");
-    String collectionId = collectionData.getString("id");
-    String catalogUrl = STACParser.getCatalogUrl(collectionUrl, collectionId, collectionData);
-    JSONObject catalogData = STACParser.requestMetadata(catalogUrl, "catalog");
+    StacResource.Collection collection = new StacResource.Collection(resource.getParameters().get("collection", String.class));
+    StacResource.Catalog catalog = collection.getCatalog();
     String assetId = resource.getParameters().get("asset", String.class);
 
     var space =
@@ -74,10 +71,12 @@ public class STACManager {
                 .orElseThrow();
     var resourceTime = (Time) Scale.create(resource.getGeometry()).getTime();
 
-    boolean hasSearchOption = STACParser.containsLinkTo(catalogData, "search");
+    // TODO add search check
+    //boolean hasSearchOption = StacParser.containsLinkTo(catalogData, "search");
+    boolean hasSearchOption = true;
     if (!hasSearchOption) {
       try {
-        var features = STACParser.getFeaturesFromStaticCollection(collectionData);
+        var features = StacParser.getFeaturesFromStaticCollection(collection.getData());
 
         // Filter by time
         features = features.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
@@ -127,14 +126,14 @@ public class STACManager {
     }
 
     LogProgressMonitor lpm = new LogProgressMonitor();
-    HMStacManager manager = new HMStacManager(catalogUrl, lpm);
-    HMStacCollection collection = null;
+    HMStacManager manager = new HMStacManager(catalog.getUrl(), lpm);
+    HMStacCollection hmCollection = null;
     try {
       manager.open();
-      collection =
+      hmCollection =
           manager.getCollectionById(resource.getParameters().get("collectionId", String.class));
     } catch (Exception e) {
-      throw new KlabResourceAccessException("Cannot access to STAC collection " + collectionUrl);
+      throw new KlabResourceAccessException("Cannot access to STAC collection " + collection.getUrl());
     }
 
     if (collection == null) {
@@ -161,20 +160,20 @@ public class STACManager {
             envelope.getMaxY(),
             space.getProjection());
     var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope());
-    collection.setGeometryFilter(poly);
+    hmCollection.setGeometryFilter(poly);
 
     // TODO check how to validate the time coverage
     var start = time.getStart();
     var end = time.getEnd();
-    collection.setTimestampFilter(
+    hmCollection.setTimestampFilter(
         new Date(start.getMilliseconds()), new Date(end.getMilliseconds()));
 
     GridCoverage2D coverage = null;
     try {
       // TODO working on S3 credentials
-      var assets = STACParser.readAssetsFromCollection(collectionUrl, collectionData);
-      Set<String> assetIds = STACParser.readAssetNames(assets);
-      var asset = STACParser.getAsset(assets, assetId);
+      var assets = StacParser.readAssetsFromCollection(collection.getUrl(), collection.getData());
+      Set<String> assetIds = StacParser.readAssetNames(assets);
+      var asset = StacParser.getAsset(assets, assetId);
       String assetHref = asset.getString("href");
       if (assetHref.startsWith("s3://")) { // TODO manage S3 from the core projcet
         final String AWS_ENDPOINT =
@@ -187,7 +186,7 @@ public class STACManager {
         }
       }
       coverage =
-          buildStacCoverage(builder, collection, mergeMode, space, envelope, assetId, lpm, scope);
+          buildStacCoverage(builder, hmCollection, mergeMode, space, envelope, assetId, lpm, scope);
     } catch (Exception e) {
       throw new KlabResourceAccessException(
           "Cannot build STAC raster output. Reason " + e.getMessage());

@@ -4,7 +4,7 @@ import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
-import org.integratedmodelling.geospatial.adapters.stac.STACManager;
+import org.integratedmodelling.geospatial.adapters.stac.StacEngine;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
@@ -74,7 +74,7 @@ public class STACAdapter {
       Scope scope) {
     GridCoverage2D coverage = null;
     try {
-      coverage = STACManager.getGridCoverage2D(resource, builder, geometry, scope);
+      coverage = StacEngine.getGridCoverage2D(resource, builder, geometry, scope);
     } catch (Exception e) {
       builder.notification(
           Notification.error("Cannot encode STAC resource", Notification.Outcome.Failure));
