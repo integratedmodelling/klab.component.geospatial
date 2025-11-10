@@ -21,7 +21,7 @@ public class StacResource {
         private final String url;
         private final String id;
         private final JSONObject data;
-        //private final String searchEndpoint;
+        private final Optional<String> searchEndpoint;
 
         public String getUrl() {
             return url;
@@ -35,6 +35,14 @@ public class StacResource {
             return data;
         }
 
+        public Optional<String> getSearchEndpoint() {
+            return searchEndpoint;
+        }
+
+        public boolean hasSearchEndpoint() {
+            return searchEndpoint.isPresent();
+        }
+        
         public Catalog(String url) {
             this.url = url;
             HttpResponse<JsonNode> response = Unirest.get(url).asJson();
@@ -47,9 +55,13 @@ public class StacResource {
             }
 
             this.id = data.getString("id");
-
-            // TODO add search endpoint
+            this.searchEndpoint = getLinkTo("search");
         }
+
+        public Optional<String> getLinkTo(String rel) {
+            return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).findFirst();
+        }
+
     }
 
     public static class Collection {

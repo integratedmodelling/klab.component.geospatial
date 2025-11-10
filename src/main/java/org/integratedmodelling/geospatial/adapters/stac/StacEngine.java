@@ -71,9 +71,7 @@ public class StacEngine {
                 .orElseThrow();
     var resourceTime = (Time) Scale.create(resource.getGeometry()).getTime();
 
-    // TODO add search check
-    //boolean hasSearchOption = StacParser.containsLinkTo(catalogData, "search");
-    boolean hasSearchOption = true;
+    boolean hasSearchOption = catalog.hasSearchEndpoint();
     if (!hasSearchOption) {
       try {
         var features = StacParser.getFeaturesFromStaticCollection(collection.getData());
