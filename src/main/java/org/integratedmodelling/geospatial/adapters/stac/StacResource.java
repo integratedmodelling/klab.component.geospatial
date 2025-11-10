@@ -17,7 +17,7 @@ import java.util.Set;
  * describe the STAC resource.
  */
 public class StacResource {
-    private class Catalog {
+    public static class Catalog {
         private final String url;
         private final String id;
         private final JSONObject data;
@@ -52,7 +52,7 @@ public class StacResource {
         }
     }
 
-    private class Collection {
+    public static class Collection {
         private final String url;
         private final String id;
         private final JSONObject data;
@@ -62,6 +62,7 @@ public class StacResource {
         private Optional<String> doi;
         private Optional<String> description;
         private Optional<String> license;
+        private Optional<String> title;
 
         final private static Set<String> DOI_KEYS = Set.of("sci:doi", "assets.sci:doi", "summaries.sci:doi", "properties.sci:doi", "item_assets.sci:doi");
 
@@ -141,6 +142,13 @@ public class StacResource {
             return description = data.has("description") ? Optional.of(data.getString("description")) : Optional.empty();
         }
 
+        public Optional<String> getTitle() {
+            if (title.isPresent()) {
+                return title;
+            }
+            return title = data.has("title") ? Optional.of(data.getString("title")) : Optional.empty();
+        }
+
         private String getCatalogUrl() throws Throwable {
             return (String) data.getJSONArray("links").toList()
                     .stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase("root")).map(link -> ((JSONObject) link).getString("href"))
@@ -174,7 +182,7 @@ public class StacResource {
 
     }
 
-    private class Asset {
+    public class Asset {
         String id;
         String type;
         String href;
@@ -197,7 +205,7 @@ public class StacResource {
     }
 
     private Catalog catalog;
-    private Collection collection;
+    private static Collection collection;
     private Asset asset;
 
     /**
