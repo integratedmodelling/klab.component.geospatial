@@ -3,7 +3,6 @@ package org.integratedmodelling.geospatial.adapters.stac;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
-import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
@@ -76,18 +75,6 @@ public class StacParser {
     public static List<String> getLinksTo(JSONObject data, String rel) {
         return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).toList();
     }
-
-    /*
-    public static Type inferValueType(String key) {
-        if (StringUtils.isNumeric(key)) {
-            return Type.NUMBER;
-        } else if ("true".equalsIgnoreCase(key) || "false".equalsIgnoreCase(key)) {
-            return Type.BOOLEAN;
-        }
-        // As we are reading a JSON, text is our safest default option
-        return Type.TEXT;
-    }
-     */
 
     public static String getUrlOfItem(String collectionUrl, String collectionId, String href) {
         if (href.startsWith("..")) {

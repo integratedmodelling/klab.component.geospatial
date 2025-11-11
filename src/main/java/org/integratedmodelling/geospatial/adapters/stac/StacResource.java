@@ -11,6 +11,7 @@ import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +23,7 @@ import java.util.Vector;
  * describe the STAC resource.
  */
 public class StacResource {
+    // TODO manage URIs
     public static class Catalog {
         private final String url;
         private final String id;
@@ -247,10 +249,15 @@ public class StacResource {
     }
 
     public class Item {
-        private String id;
+        private final String url;
+        private final String id;
+        private final JSONObject data;
         // Geometry or bbox
+        private final Instant start;
+        private final Instant end;
         private HMStacItem hmStacItem;
-        private Asset asset; // For now, we assume that we want a single asset
+        // For now, we assume that we want a single asset
+        private Asset asset;
 
         public String getId() {
             return id;
@@ -260,8 +267,29 @@ public class StacResource {
             return asset;
         }
 
-        public Item() {
+        public Item(String url) {
+            this.url = url;
+            HttpResponse<JsonNode> response = Unirest.get(url).asJson();
+            if (!response.isSuccess() || response.getBody() == null) {
+                throw new KlabResourceAccessException("Cannot access the collection at " + url);
+            }
+            this.data = response.getBody().getObject();
+            if (!data.getString("type").equalsIgnoreCase("collection")) {
+                throw new KlabResourceAccessException("Data at " + url + " is not a valid STAC collection");
+            }
 
+            this.id = data.getString("id");
+
+            // TODO set geometry
+
+
+            // TODO set datetime
+            var start_date = data.getJSONObject("properties").getString("start_date");
+            this.start = start_date == null ? null : Instant.parse(start_date);
+            var end_date = data.getJSONObject("properties").getString("start_date");
+            this.end = end_date == null ? null : Instant.parse(end_date);
+
+            // TODO set assets
         }
 
     }

@@ -10,7 +10,6 @@ import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Metadata;
 import org.integratedmodelling.klab.api.data.Version;
-import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryBuilder;
 import org.integratedmodelling.klab.api.knowledge.*;
@@ -55,7 +54,7 @@ import java.util.Set;
           description =
             "For multiband rasters, this indicates the band to be retrieved."),
     })
-public class STACAdapter {
+public class StacAdapter {
 
   private static final Set<String> SUPPORTED_RASTER_MEDIA_TYPE =
       Set.of(
@@ -67,7 +66,7 @@ public class STACAdapter {
 
   private static final Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json");
 
-  public STACAdapter() {}
+  public StacAdapter() {}
 
   @ResourceAdapter.Encoder
   public void encode(

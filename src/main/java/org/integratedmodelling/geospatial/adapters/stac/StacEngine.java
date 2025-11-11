@@ -170,7 +170,6 @@ public class StacEngine {
     try {
       // TODO working on S3 credentials
       var assets = StacParser.readAssetsFromCollection(collection);
-      Set<String> assetIds = StacParser.readAssetNames(assets);
       var asset = StacParser.getAsset(assets, assetId);
       String assetHref = asset.getString("href");
       if (assetHref.startsWith("s3://")) { // TODO manage S3 from the core projcet
