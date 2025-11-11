@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * STAC is service-bound so it can be embedded in a runtime.
+ * STAC is service-bound, so it can be embedded in a runtime.
  *
  * @author Ferd
  */
@@ -48,7 +48,12 @@ import java.util.Set;
           optional = true,
           description =
               "The asset that is going to be retrieved from the items. Left it blank when the information is stored in the feature."),
-      // TODO manage bands
+      @Parameter(
+          name = "band",
+          type = Artifact.Type.NUMBER,
+          optional = true,
+          description =
+            "For multiband rasters, this indicates the band to be retrieved."),
     })
 public class STACAdapter {
 
@@ -101,49 +106,19 @@ public class STACAdapter {
      */
   @ResourceAdapter.Type
   public static Artifact.Type getType(String collection, String assetId) {
-    JSONObject itemsData = null;
-    try {
-      // itemsData = StacParser.getSampleItem(collectionData); TODO
-    } catch (Throwable e) {
-      throw new RuntimeException(e);
-    }
-    var assetsData = itemsData.getJSONArray("features").getJSONObject(0).getJSONObject("assets");
-    if (!assetsData.has(assetId)) {
-      throw new KlabUnimplementedException("STAC adapter: can't find " + assetId);
-    }
-    String assetType = assetsData.getJSONObject(assetId).getString("type");
-
-    // TODO check if these are the correct types
-    if (SUPPORTED_RASTER_MEDIA_TYPE.contains(assetType.toLowerCase().replaceAll(" ", ""))) {
-      return Artifact.Type.NUMBER;
-    }
-    if (SUPPORTED_VECTOR_MEDIA_TYPE.contains(assetType.toLowerCase().replaceAll(" ", ""))) {
-      return Artifact.Type.GEOMETRY;
-    }
-    // TODO other types
-    throw new KlabUnimplementedException("STAC adapter: can't handle this type " + assetType);
+    return Artifact.Type.NUMBER;
   }
 
-  static final Set<String> requiredFieldsOfCollection =
-      Set.of("type", "stac_version", "id", "description", "license", "extent", "links");
 
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
   public boolean validateLocalImport(String collectionUrl) {
     var collection = new StacResource.Collection(collectionUrl);
-    var collectionData = collection.getData();
     // For now we validate that it is a proper STAC collection
-    boolean hasRequiredFields = requiredFieldsOfCollection.stream().anyMatch(collectionData::has);
-    if (!hasRequiredFields) {
-      return false;
-    }
-    if (!collectionData.getString("type").equalsIgnoreCase("collection")) {
-      return false;
-    }
-    return true;
+    return collection.isValid();
   }
 
   @Importer(
-      schema = "stac.import.v2",
+      schema = "stac.import",
       knowledgeClass = KlabAsset.KnowledgeClass.RESOURCE,
       description = "Imports a STAC resource",
       properties = {
@@ -156,7 +131,11 @@ public class STACAdapter {
             type = Artifact.Type.TEXT,
             optional = true,
             description = "Asset ID."),
-        //
+        @KlabFunction.Argument(
+            name = "band",
+            type = Artifact.Type.NUMBER,
+            optional = true,
+            description = "Raster band."),
       })
   public static Resource importSTAC(Parameters<String> properties) {
     // TODO

@@ -14,6 +14,7 @@ import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Vector;
 
 /**
  * This class represents a k.LAB STAC resource. It heavily uses the HortonMachine implementation.
@@ -63,8 +64,10 @@ public class StacResource {
             this.searchEndpoint = getLinkTo("search");
         }
 
-        public Optional<String> getLinkTo(String rel) {
-            return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).findFirst();
+        private Optional<String> getLinkTo(String rel) {
+            return data.getJSONArray("links").toList().stream()
+                    .filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href"))
+                    .findFirst();
         }
 
     }
@@ -165,7 +168,7 @@ public class StacResource {
             if (!data.has("keywords")) {
                 return Optional.empty();
             }
-            List keywordList = data.getJSONArray("keywords").toList();
+            var keywordList = data.getJSONArray("keywords").toList();
             return keywords = keywordList.isEmpty() ? Optional.empty() : Optional.of(String.join(",", keywordList));
         }
 
@@ -221,6 +224,25 @@ public class StacResource {
             return Optional.empty();
         }
 
+        static final Set<String> requiredFieldsOfCollection =
+                Set.of("type", "stac_version", "id", "description", "license", "extent", "links");
+
+        /**
+         * Validates if the STAC collection has the required fields and the correct JSON type.
+         * @return true if no issue is found.
+         */
+        public boolean isValid() {
+            boolean hasRequiredFields = requiredFieldsOfCollection.stream().anyMatch(data::has);
+            if (!hasRequiredFields) {
+                nonStandardWarnings.add("The STAC collection " + this.id + " is missing required fields.");
+                return false;
+            }
+            if (!data.getString("type").equalsIgnoreCase("collection")) {
+                nonStandardWarnings.add("The STAC collection " + this.id + " is does not have type=collection.");
+                return false;
+            }
+            return true;
+        }
     }
 
     public class Item {
@@ -272,6 +294,7 @@ public class StacResource {
 
     /**
      * I am fed up with strange STAC implementations. I will try to support them, but I want to keep track of them somehow.
+     * Then, we can tell it to the data providers.
      */
-    private List<String> nonStandardWarnings;
+    private static List<String> nonStandardWarnings = new Vector<>();
 }

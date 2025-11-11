@@ -89,28 +89,6 @@ public class StacParser {
     }
      */
 
-        /**
-         * Reads the collection data and extracts the link pointing to the root element (the catalog).
-         *
-         * @param collectionUrl
-         * @param collectionId
-         * @param collectionData
-         * @return url of the catalog
-         */
-    public static String getCatalogUrl(String collectionUrl, String collectionId, JSONObject collectionData) {
-        // The URL of the catalog is the root
-        if (!collectionData.has("links")) {
-            throw new KlabResourceAccessException("STAC collection is missing links. It is not fully complaiant and cannot be accessed by the adapter.");
-        }
-        JSONArray links = collectionData.getJSONArray("links");
-        Optional<JSONObject> rootLink = links.toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase("root")).findFirst();
-        if (rootLink.isEmpty()) {
-            throw new KlabResourceAccessException("STAC collection is missing a relationship to the root catalog");
-        }
-        String href = rootLink.get().getString("href");
-        return getUrlOfItem(collectionUrl, collectionId, href);
-    }
-
     public static String getUrlOfItem(String collectionUrl, String collectionId, String href) {
         if (href.startsWith("..")) {
             return collectionUrl.replace("/collection.json", "").replace(collectionId, "") + href.replace("../", "");
