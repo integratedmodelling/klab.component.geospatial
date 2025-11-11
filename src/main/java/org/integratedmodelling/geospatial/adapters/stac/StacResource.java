@@ -5,6 +5,10 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.hortonmachine.gears.io.stac.HMStacAsset;
+import org.hortonmachine.gears.io.stac.HMStacCollection;
+import org.hortonmachine.gears.io.stac.HMStacItem;
+import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 
 import java.util.List;
@@ -22,6 +26,7 @@ public class StacResource {
         private final String id;
         private final JSONObject data;
         private final Optional<String> searchEndpoint;
+        private HMStacManager hmStacManager;
 
         public String getUrl() {
             return url;
@@ -42,7 +47,7 @@ public class StacResource {
         public boolean hasSearchEndpoint() {
             return searchEndpoint.isPresent();
         }
-        
+
         public Catalog(String url) {
             this.url = url;
             HttpResponse<JsonNode> response = Unirest.get(url).asJson();
@@ -69,6 +74,8 @@ public class StacResource {
         private final String id;
         private final JSONObject data;
         private final Catalog catalog;
+        private List<Item> assetNames;
+        private HMStacCollection hmStacCollection;
 
         private Optional<String> keywords;
         private Optional<String> doi;
@@ -216,10 +223,31 @@ public class StacResource {
 
     }
 
+    public class Item {
+        private String id;
+        // Geometry or bbox
+        private HMStacItem hmStacItem;
+        private Asset asset; // For now, we assume that we want a single asset
+
+        public String getId() {
+            return id;
+        }
+
+        public Asset getAsset() {
+            return asset;
+        }
+
+        public Item() {
+
+        }
+
+    }
+
     public class Asset {
-        String id;
-        String type;
-        String href;
+        private String id;
+        private String type;
+        private String href;
+        private HMStacAsset hmStacAsset;
 
         public Asset() {
             // TODO
@@ -243,7 +271,7 @@ public class StacResource {
     private Asset asset;
 
     /**
-     * I am fed up with strange STAC implementations. I will try to supportt them, but I want to keep track of them somehow.
+     * I am fed up with strange STAC implementations. I will try to support them, but I want to keep track of them somehow.
      */
     private List<String> nonStandardWarnings;
 }
