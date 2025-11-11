@@ -127,23 +127,21 @@ public class StacParser {
      * @return The asset list as a JSON
      * @throws KlabResourceAccessException
      */
-    public static JSONObject readAssetsFromCollection(String collectionUrl, JSONObject collection) throws KlabResourceAccessException {
-        String collectionId = collection.getString("id");
-        String catalogUrl = StacParser.getCatalogUrl(collectionUrl, collectionId, collection);
-        JSONObject catalogData = StacParser.requestMetadata(catalogUrl, "catalog");
+    public static JSONObject readAssetsFromCollection(StacResource.Collection collection) throws KlabResourceAccessException {
+        var catalog = collection.getCatalog();
+        String collectionId = collection.getId();
+        var collectionUrl = collection.getUrl();
+        var collectionData = collection.getData();
 
-        Optional<String> searchEndpoint = StacParser.containsLinkTo(catalogData, "search")
-                ? StacParser.getLinkTo(catalogData, "search")
-                : StacParser.getLinkTo(collection, "search");
-
+        var searchEndpoint = catalog.getSearchEndpoint();
         // Static catalogs should have their assets on the Collection
         if (searchEndpoint.isEmpty()) {
             // Check the assets
-            if (collection.has("assets")) {
-                return collection.getJSONObject("assets");
+            if (collectionData.has("assets")) {
+                return collectionData.getJSONObject("assets");
             }
             // Try to get the assets from a link that has type `item`
-            Optional<String> itemHref = StacParser.getLinkTo(collection, "item");
+            Optional<String> itemHref = StacParser.getLinkTo(collectionData, "item");
             if (itemHref.isEmpty()) {
                 throw new KlabIOException("Cannot find items at STAC collection \"" + collectionUrl + "\"");
             }

@@ -169,7 +169,7 @@ public class StacEngine {
     GridCoverage2D coverage = null;
     try {
       // TODO working on S3 credentials
-      var assets = StacParser.readAssetsFromCollection(collection.getUrl(), collection.getData());
+      var assets = StacParser.readAssetsFromCollection(collection);
       Set<String> assetIds = StacParser.readAssetNames(assets);
       var asset = StacParser.getAsset(assets, assetId);
       String assetHref = asset.getString("href");
