@@ -96,10 +96,11 @@ public class StacResource {
                         "image/tiff;application=geotiff;profile=cloud-optimized",
                         "image/vnd.stac.geotiff;profile=cloud-optimized",
                         "image/vnd.stac.geotiff;cloud-optimized=true");
-        final private static Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json");
+        final private static Set<String> SUPPORTED_VECTOR_MEDIA_TYPE = Set.of("application/geo+json", "application/vnd.shp", "application/gml+xml");
 
-        // TODO add vector types
-        private static final Set<String> SUPPORTED_MEDIA_EXTENSION = Set.of(".tif", ".tiff");
+        // Keep in mind that .json and .xml might not be vector files
+        private static final Set<String> SUPPORTED_MEDIA_EXTENSION = Set.of(".tif", ".tiff",
+                ".shp", ".shx", ".dbf", ".json", ".geojson", "gml", "xml");
 
 
         /**
