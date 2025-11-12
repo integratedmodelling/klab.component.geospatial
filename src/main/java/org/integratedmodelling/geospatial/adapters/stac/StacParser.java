@@ -13,7 +13,6 @@ import org.opengis.feature.simple.SimpleFeature;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class StacParser {
 
@@ -27,10 +26,6 @@ public class StacParser {
             throw new KlabResourceAccessException("Data at " + collectionUrl + " is not a valid STAC " + type);
         }
         return response.getBody().getObject();
-    }
-
-    public static Set<String> readAssetNames(JSONObject assets) {
-        return Set.of(JSONObject.getNames(assets));
     }
 
     public static JSONObject getAsset(JSONObject assetMap, String assetId) {

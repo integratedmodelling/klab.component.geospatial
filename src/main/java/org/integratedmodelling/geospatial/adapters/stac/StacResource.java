@@ -5,11 +5,15 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.geotools.data.geojson.GeoJSONReader;
 import org.hortonmachine.gears.io.stac.HMStacAsset;
 import org.hortonmachine.gears.io.stac.HMStacCollection;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
+import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
+import org.locationtech.jts.geom.Geometry;
 
 import java.time.Instant;
 import java.util.List;
@@ -253,18 +257,19 @@ public class StacResource {
         private final String id;
         private final JSONObject data;
         // Geometry or bbox
+        private final Geometry geometry;
         private final Instant start;
         private final Instant end;
         private HMStacItem hmStacItem;
-        // For now, we assume that we want a single asset
-        private Asset asset;
+
+        private List<Asset> assets;
 
         public String getId() {
             return id;
         }
 
-        public Asset getAsset() {
-            return asset;
+        public List<Asset> getAssets() {
+            return assets;
         }
 
         public Item(String url) {
@@ -280,32 +285,34 @@ public class StacResource {
 
             this.id = data.getString("id");
 
-            // TODO set geometry
+            if (data.has("geometry") && data.get("geometry") != null) {
+                geometry = GeoJSONReader.parseGeometry(data.getString("geometry"));
+            } else if (data.has("bbox") && data.get("bbox") != null) {
+                List<Double> bbox = data.getJSONArray("bbox").toList();
+                var envelope = EnvelopeImpl.create(bbox.get(0), bbox.get(1), bbox.get(2), bbox.get(3), Projection.of(Projection.DEFAULT_PROJECTION_CODE));
+                geometry = envelope.asJTSGeometry();
+            } else {
+                throw new KlabResourceAccessException("There is no geometry or bbox definition at the item.");
+            }
 
-
-            // TODO set datetime
             var start_date = data.getJSONObject("properties").getString("start_date");
             this.start = start_date == null ? null : Instant.parse(start_date);
             var end_date = data.getJSONObject("properties").getString("start_date");
             this.end = end_date == null ? null : Instant.parse(end_date);
 
             // TODO set assets
+            this.assets = List.of();
         }
 
     }
 
     public class Asset {
-        private String id;
         private String type;
         private String href;
         private HMStacAsset hmStacAsset;
 
         public Asset() {
             // TODO
-        }
-
-        public String getId() {
-            return id;
         }
 
         public String getType() {
