@@ -56,56 +56,9 @@ public class StacEngine {
                 .orElseThrow();
     var resourceTime = (Time) Scale.create(resource.getGeometry()).getTime();
 
-    boolean hasSearchOption = catalog.hasSearchEndpoint();
+    final boolean hasSearchOption = catalog.hasSearchEndpoint();
     if (!hasSearchOption) {
-      try {
-        var features = StacParser.getFeaturesFromStaticCollection(collection.getData());
-
-        // Filter by time
-        features = features.stream().filter(f -> isFeatureInTimeRange(time, f)).toList();
-
-        // Filter by space
-        features =
-            features.stream()
-                .filter(
-                    f -> {
-                      return true; // TODO
-                    })
-                .toList();
-
-        CoordinateReferenceSystem crs =
-            features.get(0).getFeatureType().getCoordinateReferenceSystem();
-        if (crs == null) {
-          crs = CrsUtilities.getCrsFromSrid(4326); // We go to the standard
-        }
-
-        // To HM items
-        List<HMStacItem> items =
-            features.stream()
-                .map(
-                    f -> {
-                      try {
-                        return HMStacItem.fromSimpleFeature(f);
-                      } catch (Exception e) {
-                        builder.notification(
-                            Notification.warning(
-                                "Cannot parse feature " + f.getID() + ". Ignored."));
-                        return null;
-                      }
-                    })
-                .filter(Objects::nonNull)
-                .toList();
-
-        // RegionMap regionTransformed = RegionMap.fromEnvelopeAndGrid(space.getEnvelope(),
-        // space.getStandardizedWidth(), space.getStandardizedHeight());
-        // HMRaster outRaster = HMStacCollection.readRasterBandOnRegion(regionTransformed, assetId,
-        // items, true, HMRaster.MergeMode.SUBSTITUTE, new LogProgressMonitor());
-        // TODO keep working on it
-        throw new KlabUnimplementedException("Static collections cannot be imported.");
-      } catch (Throwable e) {
-        // TODO
-        throw new RuntimeException(e);
-      }
+      throw new KlabUnimplementedException("There is no support for static STAC catalogs");
     }
 
     LogProgressMonitor lpm = new LogProgressMonitor();
@@ -146,20 +99,7 @@ public class StacEngine {
 
     GridCoverage2D coverage = null;
     try {
-      // TODO working on S3 credentials
-      var assets = StacParser.readAssetsFromCollection(collection);
-      var asset = StacParser.getAsset(assets, assetId);
-      String assetHref = asset.getString("href");
-      if (assetHref.startsWith("s3://")) { // TODO manage S3 from the core projcet
-        final String AWS_ENDPOINT =
-            "https://s3.amazonaws.com"; // TODO generalize to any S3 endpoint
-        var s3Credentials = Authentication.INSTANCE.getCredentials(AWS_ENDPOINT, scope);
-        final boolean hasCredentials = s3Credentials.getCredentials().isEmpty();
-        if (!hasCredentials) {
-          throw new KlabResourceAccessException(
-              "Cannot access " + AWS_ENDPOINT + ", lacking needed credentials.");
-        }
-      }
+      // TODO manage S3 credentials by making a query to the
       coverage =
           buildStacCoverage(builder, hmCollection, mergeMode, space, envelope, assetId, lpm, scope);
     } catch (Exception e) {
