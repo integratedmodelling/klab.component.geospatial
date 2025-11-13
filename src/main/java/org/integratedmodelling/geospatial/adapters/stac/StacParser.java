@@ -60,15 +60,18 @@ public class StacParser {
      * @return true if rel exists
      */
     public static boolean containsLinkTo(JSONObject data, String rel) {
-        return data.getJSONArray("links").toList().stream().anyMatch(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel));
+        return data.getJSONArray("links").toList().stream()
+                .anyMatch(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel));
     }
 
     public static Optional<String> getLinkTo(JSONObject data, String rel) {
-        return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).findFirst();
+        return data.getJSONArray("links").toList().stream()
+                .filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).findFirst();
     }
 
     public static List<String> getLinksTo(JSONObject data, String rel) {
-        return data.getJSONArray("links").toList().stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).toList();
+        return data.getJSONArray("links").toList().stream()
+                .filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href")).toList();
     }
 
     public static String getUrlOfItem(String collectionUrl, String collectionId, String href) {

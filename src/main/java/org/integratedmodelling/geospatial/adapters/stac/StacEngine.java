@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
-import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.hortonmachine.gears.io.stac.HMStacCollection;
@@ -12,13 +11,11 @@ import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.common.authentication.Authentication;
-import org.integratedmodelling.geospatial.adapters.RasterAdapter;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Envelope;
@@ -35,18 +32,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class StacEngine {
-
-  public static Artifact.Type getArtifactType(JSONObject asset) {
-    if (!asset.has("type")) {
-      String href = asset.getString("href");
-      boolean isRasterExtension =
-          RasterAdapter.fileExtensions.stream().anyMatch(ex -> href.toLowerCase().endsWith(ex));
-      if (isRasterExtension) {
-        return Artifact.Type.NUMBER;
-      }
-    }
-    return Artifact.Type.VOID;
-  }
 
   public static GridCoverage2D getGridCoverage2D(
       Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
@@ -132,13 +117,6 @@ public class StacEngine {
           manager.getCollectionById(resource.getParameters().get("collectionId", String.class));
     } catch (Exception e) {
       throw new KlabResourceAccessException("Cannot access to STAC collection " + collection.getUrl());
-    }
-
-    if (collection == null) {
-      throw new KlabResourceAccessException(
-          "Collection "
-              + resource.getParameters().get("collection", String.class)
-              + " cannot be found.");
     }
 
     // TODO for now, we do not manage the semantics for the MergeMode
