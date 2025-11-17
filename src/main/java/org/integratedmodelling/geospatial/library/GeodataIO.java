@@ -87,7 +87,7 @@ public class GeodataIO {
       knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
       mediaType = "image/png",
       description =
-          "Export a numeric observation to a PNG image, handling colormaps and taking an optional viewport")
+          "Export a numeric observation to a PNG image, handling colormaps and with optional viewport parameters (default <800, 800>)")
   public InputStream exportPNGContinuous(
       Observation observation,
       Storage.DoubleScanner scanner,
