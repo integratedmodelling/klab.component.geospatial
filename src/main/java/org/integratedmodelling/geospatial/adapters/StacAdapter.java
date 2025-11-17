@@ -4,7 +4,6 @@ import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
-import org.integratedmodelling.geospatial.adapters.stac.StacEngine;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
@@ -14,6 +13,8 @@ import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryBuilder;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.ResourceSet;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
@@ -23,7 +24,6 @@ import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -76,9 +76,13 @@ public class StacAdapter {
       Geometry geometry,
       Observable observable,
       Scope scope) {
+    var collection = new StacResource.Collection(resource.getParameters().get("collection", String.class));
+    var assetId = resource.getParameters().get("asset", String.class);
+    var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow();
+    var time = (Time) geometry.getDimensions().stream().filter(d -> d instanceof Time).findFirst().orElseThrow();
     GridCoverage2D coverage = null;
     try {
-      coverage = StacEngine.getGridCoverage2D(resource, builder, geometry, scope);
+      coverage = collection.getCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       builder.notification(
           Notification.error("Cannot encode STAC resource", Notification.Outcome.Failure));
@@ -137,17 +141,14 @@ public class StacAdapter {
             description = "Raster band."),
       })
   public static Resource importSTAC(Parameters<String> properties) {
-    // TODO
     var collectionUrl = properties.get("collection", String.class);
     var assetId = properties.get("asset", String.class);
-
-    StacResource.Collection collection = new StacResource.Collection(collectionUrl);
-
+    var collection = new StacResource.Collection(collectionUrl);
     var urn = collectionUrl.substring(collection.getId().lastIndexOf("/") + 1) + "-" + assetId;
 
     var builder =
             Resource.builder(urn)
-                    //.withServiceId(service.serviceId())
+                    .withServiceId("geospatial")
                     .withParameters(properties)
                     .withAdapterType("stac")
                     .withType(getType(collectionUrl, assetId)); // We need to know if it is a raster or a vector or whatever
@@ -175,11 +176,11 @@ public class StacAdapter {
     GeometryBuilder gBuilder = Geometry.builder();
 
     JSONObject extent = collection.getJSONObject("extent");
-    List bbox = extent.getJSONObject("spatial").getJSONArray("bbox").getJSONArray(0).toList();
-    gBuilder.space().boundingBox(Double.valueOf(bbox.get(0).toString()), Double.valueOf(bbox.get(1).toString()),
-            Double.valueOf(bbox.get(2).toString()), Double.valueOf(bbox.get(3).toString()));
+    var bbox = extent.getJSONObject("spatial").getJSONArray("bbox").getJSONArray(0).toList();
+    gBuilder.space().boundingBox(Double.parseDouble(bbox.get(0).toString()), Double.parseDouble(bbox.get(1).toString()),
+            Double.parseDouble(bbox.get(2).toString()), Double.parseDouble(bbox.get(3).toString()));
 
-    List interval = extent.getJSONObject("temporal").getJSONArray("interval").getJSONArray(0).toList();
+    var interval = extent.getJSONObject("temporal").getJSONArray("interval").getJSONArray(0).toList();
     if (interval.get(0) != null) {
       gBuilder.time().start(Instant.parse(interval.get(0).toString()).toEpochMilli());
     }
