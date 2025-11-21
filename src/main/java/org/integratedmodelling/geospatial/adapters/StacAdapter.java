@@ -78,8 +78,8 @@ public class StacAdapter {
       Scope scope) {
     var collection = new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
-    var space = (Space) geometry.getDimensions().stream().filter(d -> d instanceof Space).findFirst().orElseThrow();
-    var time = (Time) geometry.getDimensions().stream().filter(d -> d instanceof Time).findFirst().orElseThrow();
+    var space = (Space) geometry.getDimensions().stream().filter(d -> d.getType().equals(Geometry.Dimension.Type.SPACE)).findFirst().orElseThrow();
+    var time = (Time) geometry.getDimensions().stream().filter(d -> d.getType().equals(Geometry.Dimension.Type.TIME)).findFirst().orElseThrow();
     GridCoverage2D coverage = null;
     try {
       coverage = collection.getCoverage(builder, space, time, assetId, scope);
