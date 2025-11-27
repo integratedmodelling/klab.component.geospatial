@@ -258,7 +258,7 @@ public class StacResource {
             return true;
         }
 
-        public GridCoverage2D getCoverage(Data.Builder builder,Space space, Time time, String assetId, Scope scope) throws Exception {
+        public GridCoverage2D getCoverage(Data.Builder builder, Space space, Time time, String assetId, Scope scope) throws Exception {
             LogProgressMonitor lpm = new LogProgressMonitor();
             var manager = new HMStacManager(catalog.getUrl(), lpm);
             manager.open();

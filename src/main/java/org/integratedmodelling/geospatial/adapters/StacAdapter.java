@@ -12,9 +12,8 @@ import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryBuilder;
 import org.integratedmodelling.klab.api.knowledge.*;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.ResourceSet;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
@@ -78,8 +77,9 @@ public class StacAdapter {
       Scope scope) {
     var collection = new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
-    var space = (Space) geometry.getDimensions().stream().filter(d -> d.getType().equals(Geometry.Dimension.Type.SPACE)).findFirst().orElseThrow();
-    var time = (Time) geometry.getDimensions().stream().filter(d -> d.getType().equals(Geometry.Dimension.Type.TIME)).findFirst().orElseThrow();
+    var scale = Scale.create(geometry);
+    var time = scale.getTime();
+    var space = scale.getSpace();
     GridCoverage2D coverage = null;
     try {
       coverage = collection.getCoverage(builder, space, time, assetId, scope);
