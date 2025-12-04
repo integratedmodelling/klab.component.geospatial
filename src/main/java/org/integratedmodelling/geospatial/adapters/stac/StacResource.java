@@ -8,8 +8,6 @@ import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.hortonmachine.gears.io.stac.HMStacAsset;
-import org.hortonmachine.gears.io.stac.HMStacCollection;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
@@ -264,10 +262,16 @@ public class StacResource {
             manager.open();
 
             var collection = manager.getCollectionById(id);
+
+            var str = space.toString();
+
             var envelope = space.getEnvelope();
             var env = EnvelopeImpl.create(envelope.getMinX(), envelope.getMaxX(), envelope.getMinY(), envelope.getMaxY(), space.getProjection());
-            var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope());
-            collection.setGeometryFilter(poly);
+            var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
+            //GeometryRepository.INSTANCE.geometry(poly);
+            //collection.setGeometryFilter(poly);
+            double[] bbox = {envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()};
+            collection.setBboxFilter(bbox);
             var start = time.getStart();
             var end = time.getEnd();
             collection.setTimestampFilter(
