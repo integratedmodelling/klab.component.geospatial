@@ -15,6 +15,14 @@ The plugin adds the functionalities of the Horton Machine to k.LAB in the form o
 This component is part of the k.LAB services ecosystem. It is available on Maven Central and should be
 installed into a k.LAB Resources service using the import schema for Maven components.
 
+```xml
+<dependency>
+    <groupId>org.integratedmodelling</groupId>
+    <artifactId>klab.component.geospatial</artifactId>
+    <version>1.0-SNAPSHOT</version>
+</dependency>
+```
+
 ## Usage
 ## Development
 
