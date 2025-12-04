@@ -5,17 +5,30 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
-import org.hortonmachine.gears.io.stac.HMStacAsset;
-import org.hortonmachine.gears.io.stac.HMStacCollection;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.data.geojson.GeoJSONReader;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
+import org.hortonmachine.gears.libs.modules.HMRaster;
+import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
+import org.hortonmachine.gears.utils.RegionMap;
+import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
+import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
+import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
+import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
+import org.locationtech.jts.geom.Geometry;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class represents a k.LAB STAC resource. It heavily uses the HortonMachine implementation.
@@ -23,13 +36,11 @@ import java.util.Vector;
  * describe the STAC resource.
  */
 public class StacResource {
-    // TODO manage URIs
     public static class Catalog {
         private final String url;
         private final String id;
         private final JSONObject data;
         private final Optional<String> searchEndpoint;
-        private HMStacManager hmStacManager;
 
         public String getUrl() {
             return url;
@@ -71,16 +82,14 @@ public class StacResource {
                     .filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase(rel)).map(link -> ((JSONObject) link).getString("href"))
                     .findFirst();
         }
-
     }
 
     public static class Collection {
         private final String url;
-        private final String id;
+        private String id;
         private final JSONObject data;
-        private final Catalog catalog;
+        private Catalog catalog = null;
         private List<Item> assetNames;
-        private HMStacCollection hmStacCollection;
 
         private Optional<String> keywords;
         private Optional<String> doi;
@@ -199,7 +208,7 @@ public class StacResource {
         private String getCatalogUrl() throws Throwable {
             return (String) data.getJSONArray("links").toList()
                     .stream().filter(link -> ((JSONObject) link).getString("rel").equalsIgnoreCase("root")).map(link -> ((JSONObject) link).getString("href"))
-                    .findFirst().orElseThrow(() -> new KlabResourceAccessException("Cannot find the Catalog of collection " + collection.getId()));
+                    .findFirst().orElseThrow(() -> new KlabResourceAccessException("Cannot find the Url of Catalog " + id));
         }
 
         public Optional<String> getLicense() {
@@ -246,6 +255,94 @@ public class StacResource {
             }
             return true;
         }
+
+        public GridCoverage2D getCoverage(Data.Builder builder, Space space, Time time, String assetId, Scope scope) throws Exception {
+            LogProgressMonitor lpm = new LogProgressMonitor();
+            var manager = new HMStacManager(catalog.getUrl(), lpm);
+            manager.open();
+
+            var collection = manager.getCollectionById(id);
+
+            var str = space.toString();
+
+            var envelope = space.getEnvelope();
+            var env = EnvelopeImpl.create(envelope.getMinX(), envelope.getMaxX(), envelope.getMinY(), envelope.getMaxY(), space.getProjection());
+            var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
+            //GeometryRepository.INSTANCE.geometry(poly);
+            //collection.setGeometryFilter(poly);
+            double[] bbox = {envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()};
+            collection.setBboxFilter(bbox);
+            var start = time.getStart();
+            var end = time.getEnd();
+            collection.setTimestampFilter(
+                    new Date(start.getMilliseconds()), new Date(end.getMilliseconds()));
+
+            // TODO for now, we do not manage the semantics for the MergeMode
+            HMRaster.MergeMode mergeMode = HMRaster.MergeMode.SUBSTITUTE;
+
+
+            //return buildStacCoverage(builder, collection, mergeMode, space, envelope, assetId, lpm, scope);
+
+
+            List<HMStacItem> items = collection.searchItems();
+            if (items.isEmpty()) {
+                throw new KlabIllegalStateException("No STAC items found for this context.");
+            }
+            builder.notification(Notification.debug("Found " + items.size() + " STAC items."));
+            if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
+                sortByDate(items, builder);
+            }
+            // TODO check the usage of space.getStandardizedHeight() and space.getStandardizedHeight()
+            RegionMap region =
+                    RegionMap.fromBoundsAndGrid(
+                            space.getEnvelope().getMinX(),
+                            space.getEnvelope().getMaxX(),
+                            envelope.getMinY(),
+                            envelope.getMaxY(),
+                            (int) space.getStandardizedWidth(),
+                            (int) space.getStandardizedHeight());
+
+            ReferencedEnvelope regionEnvelope =
+                    new ReferencedEnvelope(
+                            region.toEnvelope(), ((ProjectionImpl) space.getProjection()).getCRS());
+            RegionMap regionTransformed =
+                    RegionMap.fromEnvelopeAndGrid(
+                            regionEnvelope,
+                            (int) space.getStandardizedWidth(),
+                            (int) space.getStandardizedHeight());
+            Set<Integer> EPSGsAtItems =
+                    items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
+            if (EPSGsAtItems.size() > 1) {
+                builder.notification(
+                        Notification.warning(
+                                "Multiple EPSGs found on the items "
+                                        + EPSGsAtItems.toString()
+                                        + ". The transformation process could affect the data."));
+            }
+
+            // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
+            final boolean allowTransform = true;
+            HMRaster outRaster =
+                    collection.readRasterBandOnRegion(
+                            regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
+            return outRaster.buildCoverage();
+
+        }
+
+        private static void sortByDate(List<HMStacItem> items, Data.Builder builder) {
+            if (items.stream().anyMatch(i -> i.getTimestamp() == null)) {
+                throw new KlabIllegalStateException(
+                        "STAC items are lacking a timestamp and could not be sorted by date.");
+            }
+            items.sort(Comparator.comparing(HMStacItem::getTimestamp));
+            builder.notification(
+                    Notification.debug(
+                            "Ordered STAC items. First: ["
+                                    + items.get(0).getTimestamp()
+                                    + "]; Last ["
+                                    + items.get(items.size() - 1).getTimestamp()
+                                    + "]"));
+        }
     }
 
     public class Item {
@@ -253,18 +350,18 @@ public class StacResource {
         private final String id;
         private final JSONObject data;
         // Geometry or bbox
+        private final Geometry geometry;
         private final Instant start;
         private final Instant end;
-        private HMStacItem hmStacItem;
-        // For now, we assume that we want a single asset
-        private Asset asset;
+
+        private List<Asset> assets;
 
         public String getId() {
             return id;
         }
 
-        public Asset getAsset() {
-            return asset;
+        public List<Asset> getAssets() {
+            return assets;
         }
 
         public Item(String url) {
@@ -280,32 +377,33 @@ public class StacResource {
 
             this.id = data.getString("id");
 
-            // TODO set geometry
+            if (data.has("geometry") && data.get("geometry") != null) {
+                geometry = GeoJSONReader.parseGeometry(data.getString("geometry"));
+            } else if (data.has("bbox") && data.get("bbox") != null) {
+                List<Double> bbox = data.getJSONArray("bbox").toList();
+                var envelope = EnvelopeImpl.create(bbox.get(0), bbox.get(1), bbox.get(2), bbox.get(3), Projection.of(Projection.DEFAULT_PROJECTION_CODE));
+                geometry = envelope.asJTSGeometry();
+            } else {
+                throw new KlabResourceAccessException("There is no geometry or bbox definition at the item.");
+            }
 
-
-            // TODO set datetime
             var start_date = data.getJSONObject("properties").getString("start_date");
             this.start = start_date == null ? null : Instant.parse(start_date);
             var end_date = data.getJSONObject("properties").getString("start_date");
             this.end = end_date == null ? null : Instant.parse(end_date);
 
             // TODO set assets
+            this.assets = List.of();
         }
 
     }
 
     public class Asset {
-        private String id;
         private String type;
         private String href;
-        private HMStacAsset hmStacAsset;
 
         public Asset() {
             // TODO
-        }
-
-        public String getId() {
-            return id;
         }
 
         public String getType() {
@@ -316,10 +414,6 @@ public class StacResource {
             return href;
         }
     }
-
-    private Catalog catalog;
-    private static Collection collection;
-    private Asset asset;
 
     /**
      * I am fed up with strange STAC implementations. I will try to support them, but I want to keep track of them somehow.
