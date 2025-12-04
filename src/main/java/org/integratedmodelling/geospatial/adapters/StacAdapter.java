@@ -34,6 +34,9 @@ import java.util.Set;
     name = "stac",
     version = Version.CURRENT,
     embeddable = true,
+    fillCurve = Data.FillCurve.D2_XY,
+    minSizeForSplitting =
+            1000000L, // TODO for now; could become configurable through runtime properties
     parameters = {
       @Parameter(
           name = "collection",
