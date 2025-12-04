@@ -36,6 +36,7 @@
                             <componentUsageRights>*</componentUsageRights>
                             <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
                             <componentVersion>1.0-SNAPSHOT</componentVersion>
+                            <excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>
                         </configuration>
                     </execution>
                 </executions>
@@ -171,11 +172,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
