@@ -249,7 +249,7 @@ public class StacResource {
                 nonStandardWarnings.add("The STAC collection " + this.id + " is missing required fields.");
                 return false;
             }
-            if (!data.getString("type").equalsIgnoreCase("collection")) {
+            if (!data.has("type") || !data.getString("type").equalsIgnoreCase("collection")) {
                 nonStandardWarnings.add("The STAC collection " + this.id + " is does not have type=collection.");
                 return false;
             }
@@ -371,8 +371,9 @@ public class StacResource {
                 throw new KlabResourceAccessException("Cannot access the collection at " + url);
             }
             this.data = response.getBody().getObject();
-            if (!data.getString("type").equalsIgnoreCase("collection")) {
-                throw new KlabResourceAccessException("Data at " + url + " is not a valid STAC collection");
+            if (data.has("type") || !data.getString("type").equalsIgnoreCase("Feature")) {
+                nonStandardWarnings.add("The STAC collection " + this.url + " is does not have type=item.");
+                throw new KlabResourceAccessException("Data at " + url + " is not a valid STAC item");
             }
 
             this.id = data.getString("id");
