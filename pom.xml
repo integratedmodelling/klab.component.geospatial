@@ -93,6 +93,7 @@
         <mockito-version>5.18.0</mockito-version>
         <maven.surefire.version>3.5.3</maven.surefire.version>
         <jackson.version>2.17.1</jackson.version>
+        <imageio-ext.version>1.4.7</imageio-ext.version>
     </properties>
 
 
@@ -302,6 +303,15 @@
             <artifactId>aws-lightweight-client-java</artifactId>
             <version>0.1.16</version>
         </dependency>
+        <dependency>
+            <groupId>it.geosolutions.imageio-ext</groupId>
+            <artifactId>imageio-ext-cog-reader</artifactId>
+            <version>${imageio-ext.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>it.geosolutions.imageio-ext</groupId>
+            <artifactId>imageio-ext-cog-rangereader-http</artifactId>
+            <version>${imageio-ext.version}</version>
+        </dependency>
     </dependencies>
-
 </project>
