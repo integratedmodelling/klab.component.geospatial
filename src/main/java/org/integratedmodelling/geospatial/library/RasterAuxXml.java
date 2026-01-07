@@ -1,4 +1,4 @@
-package org.integratedmodelling.geospatial.adapters.raster;
+package org.integratedmodelling.geospatial.library;
 
 import java.util.ArrayList;
 import java.util.List;
