@@ -85,7 +85,8 @@ public class StacAdapter {
     var space = scale.getSpace();
     GridCoverage2D coverage = null;
     try {
-      coverage = collection.getCoverage(builder, space, time, assetId, scope);
+      //coverage = collection.getCoverage(builder, space, time, assetId, scope);
+      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       builder.notification(
           Notification.error("Cannot encode STAC resource", Notification.Outcome.Failure));

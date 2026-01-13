@@ -8,6 +8,7 @@ import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
@@ -26,6 +27,7 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.locationtech.jts.geom.Geometry;
 
+import java.io.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -254,6 +256,53 @@ public class StacResource {
                 return false;
             }
             return true;
+        }
+
+        public GridCoverage2D getSTACCoverage(Data.Builder builder, Space space, Time time, String assetId, Scope scope) throws Exception {
+            GridCoverage2D gridCoverage = null;
+            try {
+                var envelope = space.getEnvelope();
+                double[] bbox = {envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()};
+                var start = time.getStart();
+                var end = time.getEnd();
+                File tempFile = File.createTempFile("geo", ".tif");
+                tempFile.deleteOnExit();
+                gridCoverage = getDataFromCOllection(
+                        url, bbox, assetId, start.toString(), end.toString());
+
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+            return gridCoverage;
+        }
+
+        private static GridCoverage2D getDataFromCOllection(String collectionURL, double[] bbox, String band, String startTime, String endTime) throws Exception {
+
+            File coverageFile = File.createTempFile("geo", ".tiff");
+            coverageFile.deleteOnExit();
+            JSONObject collectionPostReq = new JSONObject();
+            collectionPostReq.put("collection_url", collectionURL); // The url to the COG
+            collectionPostReq.put("bbox", bbox);
+            collectionPostReq.put("start_time", startTime);
+            collectionPostReq.put("end_time", endTime);
+
+            kong.unirest.HttpResponse<File> stacQuerierResponse = Unirest
+                    .post("https://stac-utils.integratedmodelling.org/stac_querier")
+                    .header("Content-Type", "application/json").body(collectionPostReq)
+                    .connectTimeout(600000).socketTimeout(600000).asObject(r -> {
+                        try (InputStream in = r.getContent(); OutputStream out = new FileOutputStream(coverageFile)) {
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = in.read(buffer)) != -1) {
+                                out.write(buffer, 0, bytesRead);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException("Error writing response to file", e);
+                        }
+                        return coverageFile;
+                    });
+
+            return OmsRasterReader.readRaster(coverageFile.getAbsolutePath());
         }
 
         public GridCoverage2D getCoverage(Data.Builder builder, Space space, Time time, String assetId, Scope scope) throws Exception {
