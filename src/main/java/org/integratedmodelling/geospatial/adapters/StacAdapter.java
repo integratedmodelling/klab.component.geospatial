@@ -88,6 +88,7 @@ public class StacAdapter {
       //coverage = collection.getCoverage(builder, space, time, assetId, scope);
       coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
+      e.printStackTrace(); // get the stack trace
       builder.notification(
           Notification.error("Cannot encode STAC resource", Notification.Outcome.Failure));
       return;
