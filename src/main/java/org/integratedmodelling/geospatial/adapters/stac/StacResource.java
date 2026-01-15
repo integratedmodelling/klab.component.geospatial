@@ -265,8 +265,6 @@ public class StacResource {
                 double[] bbox = {envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()};
                 var start = time.getStart();
                 var end = time.getEnd();
-                File tempFile = File.createTempFile("geo", ".tif");
-                tempFile.deleteOnExit();
                 gridCoverage = getDataFromCOllection(
                         url, bbox, assetId, start.toString(), end.toString());
 
@@ -287,7 +285,7 @@ public class StacResource {
             collectionPostReq.put("end_time", endTime);
 
             kong.unirest.HttpResponse<File> stacQuerierResponse = Unirest
-                    .post("https://stac-utils.integratedmodelling.org/stac_querier")
+                    .post("https://stac-utils.integratedmodelling.org/stac_query")
                     .header("Content-Type", "application/json").body(collectionPostReq)
                     .connectTimeout(600000).socketTimeout(600000).asObject(r -> {
                         try (InputStream in = r.getContent(); OutputStream out = new FileOutputStream(coverageFile)) {
