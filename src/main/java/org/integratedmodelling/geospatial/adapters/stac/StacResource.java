@@ -282,8 +282,8 @@ public class StacResource {
             collectionPostReq.put("collection_url", collectionURL); // The url to the COG
             collectionPostReq.put("bbox", bbox);
             collectionPostReq.put("asset", assetId);
-            collectionPostReq.put("start_time", startTime);
-            collectionPostReq.put("end_time", endTime);
+            //collectionPostReq.put("start_time", startTime);
+            //collectionPostReq.put("end_time", endTime);
 
             kong.unirest.HttpResponse<File> stacQuerierResponse = Unirest
                     .post("https://stac-utils.integratedmodelling.org/stac_query")
