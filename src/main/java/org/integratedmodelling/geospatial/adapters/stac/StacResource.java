@@ -274,13 +274,14 @@ public class StacResource {
             return gridCoverage;
         }
 
-        private static GridCoverage2D getDataFromCOllection(String collectionURL, double[] bbox, String band, String startTime, String endTime) throws Exception {
+        private static GridCoverage2D getDataFromCOllection(String collectionURL, double[] bbox, String assetId, String startTime, String endTime) throws Exception {
 
             File coverageFile = File.createTempFile("geo", ".tiff");
             coverageFile.deleteOnExit();
             JSONObject collectionPostReq = new JSONObject();
             collectionPostReq.put("collection_url", collectionURL); // The url to the COG
             collectionPostReq.put("bbox", bbox);
+            collectionPostReq.put("asset", assetId);
             collectionPostReq.put("start_time", startTime);
             collectionPostReq.put("end_time", endTime);
 
