@@ -283,7 +283,7 @@ public class WCSServiceManager {
         try {
           // Build the URL for describeCoverage request
           URL url =
-              new URL(
+              Utils.URLs.newURL(
                   serviceUrl
                       + "?service=WCS&version="
                       + version

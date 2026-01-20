@@ -50,7 +50,8 @@ public class StacEngine {
 
   public static GridCoverage2D getGridCoverage2D(
       Resource resource, Data.Builder builder, Geometry geometry, Scope scope) throws Exception {
-    StacResource.Collection collection = new StacResource.Collection(resource.getParameters().get("collection", String.class));
+    StacResource.Collection collection =
+        new StacResource.Collection(resource.getParameters().get("collection", String.class));
     StacResource.Catalog catalog = collection.getCatalog();
     String assetId = resource.getParameters().get("asset", String.class);
 
@@ -131,7 +132,8 @@ public class StacEngine {
       hmCollection =
           manager.getCollectionById(resource.getParameters().get("collectionId", String.class));
     } catch (Exception e) {
-      throw new KlabResourceAccessException("Cannot access to STAC collection " + collection.getUrl());
+      throw new KlabResourceAccessException(
+          "Cannot access to STAC collection " + collection.getUrl());
     }
 
     if (collection == null) {
