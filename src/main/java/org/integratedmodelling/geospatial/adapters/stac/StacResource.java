@@ -350,6 +350,12 @@ public class StacResource {
       manager.open();
 
       var collection = manager.getCollectionById(id);
+
+      if (collection == null) {
+        throw new KlabIllegalStateException(
+            "STAC collection " + id + " not found in catalog " + catalog.getUrl());
+      }
+
       var grid = space instanceof Tile tile ? tile.getGrid() : null;
 
       if (grid == null) {
