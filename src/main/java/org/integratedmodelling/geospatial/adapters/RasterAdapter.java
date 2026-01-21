@@ -1,5 +1,6 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
@@ -11,7 +12,7 @@ import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.api.utils.Utils;
-import org.opengis.coverage.grid.GridCoverage;
+//import org.opengis.coverage.grid.GridCoverage;
 
 import java.util.Set;
 
