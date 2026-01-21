@@ -1,14 +1,18 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import kong.unirest.json.JSONObject;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.referencing.CRS;
 import org.hortonmachine.gears.io.stac.HMStacCollection;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
-import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.common.authentication.Authentication;
@@ -28,11 +32,6 @@ import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class StacEngine {
 
@@ -92,7 +91,7 @@ public class StacEngine {
         CoordinateReferenceSystem crs =
             features.get(0).getFeatureType().getCoordinateReferenceSystem();
         if (crs == null) {
-          crs = CrsUtilities.getCrsFromSrid(4326); // We go to the standard
+          crs = CRS.decode("EPSG:4326"); // We go to the standard
         }
 
         // To HM items

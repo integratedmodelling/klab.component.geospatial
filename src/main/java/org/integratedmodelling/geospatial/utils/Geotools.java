@@ -3,22 +3,13 @@ package org.integratedmodelling.geospatial.utils;
 import java.awt.*;
 import java.awt.image.*;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import javax.media.jai.*;
-import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
 
-//import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-//import org.geotools.coverage.GridSampleDimension;
-//import org.geotools.coverage.grid.GridCoverage2D;
-//import org.geotools.coverage.grid.GridCoverageFactory;
-//import org.geotools.geometry.jts.ReferencedEnvelope;
-//import org.geotools.metadata.iso.citation.Citations;
-//import org.geotools.referencing.CRS;
+import org.eclipse.imagen.RasterFactory;
+import org.eclipse.imagen.iterator.RandomIterFactory;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -36,9 +27,6 @@ import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.*;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
-import org.opengis.metadata.Identifier;
-import org.opengis.metadata.citation.Citation;
-import org.opengis.referencing.FactoryException;
 
 /**
  * Geotools utilities. All scanners are assumed to scan according to {@link
@@ -569,7 +557,7 @@ public class Geotools {
     long ndata = 0;
 
     RenderedImage image = layer.getRenderedImage();
-    RandomIter itera = RandomIterFactory.create(image, null);
+    var iterator = RandomIterFactory.create(image, null);
     var mapper =
         scanner
             .shard()
@@ -580,7 +568,7 @@ public class Geotools {
     for (int i = 0; i < grid.size(); i++) {
 
       long[] xy = mapper.offsets(i);
-      Double value = itera.getSampleDouble((int) xy[0], (int) xy[1], 0);
+      Double value = iterator.getSampleDouble((int) xy[0], (int) xy[1], 0);
       //      ILocator spl = locator.at(ISpace.class, xy[0], xy[1]);
       if (transformation != null) {
         value = transformation.apply(value);

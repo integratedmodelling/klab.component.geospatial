@@ -10,7 +10,6 @@ import java.util.*;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.IOUtils;
-//import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.JXPathContext;
 import org.integratedmodelling.common.authentication.Authentication;
 import org.integratedmodelling.common.authentication.Authorization;

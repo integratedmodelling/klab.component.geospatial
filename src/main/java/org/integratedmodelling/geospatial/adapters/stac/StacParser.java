@@ -1,5 +1,9 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -10,11 +14,6 @@ import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
 //import org.opengis.feature.simple.SimpleFeature;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 public class StacParser {
 

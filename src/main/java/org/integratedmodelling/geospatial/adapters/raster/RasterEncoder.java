@@ -54,6 +54,7 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
 
+
 /**
  * The {@code RasterEncoder} adapts a raster resource (file-based) to a passed geometry and builds
  * the correspondent Data buffer.

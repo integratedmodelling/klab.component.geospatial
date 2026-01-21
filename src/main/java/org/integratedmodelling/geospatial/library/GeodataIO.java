@@ -8,6 +8,9 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.List;
 import javax.imageio.ImageIO;
+
+import org.geotools.api.style.RasterSymbolizer;
+import org.geotools.api.style.Style;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileWriter;
@@ -15,8 +18,6 @@ import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.map.GridCoverageLayer;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
-import org.geotools.styling.RasterSymbolizer;
-import org.geotools.styling.Style;
 import org.geotools.styling.StyleBuilder;
 import org.integratedmodelling.geospatial.adapters.raster.*;
 import org.integratedmodelling.geospatial.utils.Geotools;
