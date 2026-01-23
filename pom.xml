@@ -87,7 +87,7 @@
         <plugin.dependencies/>
 
         <klab.version>1.0.0-SNAPSHOT</klab.version>
-        <!--        <geotools.version>28.0</geotools.version>-->
+        <geotools.version>34.0</geotools.version>
         <hortonmachine.version>0.11.0-SNAPSHOT</hortonmachine.version>
         <junit-version>5.13.4</junit-version>
         <mockito-version>5.18.0</mockito-version>
