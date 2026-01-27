@@ -23,6 +23,11 @@ import org.integratedmodelling.klab.api.services.runtime.Notification;
  */
 @ResourceAdapter(
     name = "stac",
+    description =
+       """
+           STAC is a standard for sharing geospatial data and metadata, enabling interoperability between
+           different systems and services.
+       """,
     version = Version.CURRENT,
     embeddable = true,
     fillCurve = Data.FillCurve.D2_XY,
@@ -91,120 +96,127 @@ public class StacAdapter {
   }
 
   @ResourceAdapter.Type
-  public Artifact.Type getType(Resource resourceUrn) {
-    // TODO get the data from the resource. For now, raster
+  public Artifact.Type getType(Resource resource) {
+    var asset = resource.getParameters().get("asset", String.class);
+    if (asset == null) {
+      // no asset = we just want the items' geometry and properties.
+      return Artifact.Type.OBJECT;
+    }
+    // TODO check the asset types - for now assume it's numbers through geotiffs or other; later we
+    //  may differentiate using further configuration.
     return Artifact.Type.NUMBER;
   }
 
-//  /**
-//   * STAC may provide all sorts of things, so the decision needs to look at the entire resource
-//   * parameterization.
-//   *
-//   * @param collection URL of the collection
-//   * @param assetId ID of the asset
-//   *
-//   * FIXME two String parameters will never match properly, needs the Resource here
-//   *
-//   * @return
-//   */
-//  @ResourceAdapter.Type
-//  public static Artifact.Type getType(String collection, String assetId) {
-//    return Artifact.Type.NUMBER;
-//  }
+  //  /**
+  //   * STAC may provide all sorts of things, so the decision needs to look at the entire resource
+  //   * parameterization.
+  //   *
+  //   * @param collection URL of the collection
+  //   * @param assetId ID of the asset
+  //   *
+  //   * FIXME two String parameters will never match properly, needs the Resource here
+  //   *
+  //   * @return
+  //   */
+  //  @ResourceAdapter.Type
+  //  public static Artifact.Type getType(String collection, String assetId) {
+  //    return Artifact.Type.NUMBER;
+  //  }
 
-// no import
-//  @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
-//  public boolean validateLocalImport(String collectionUrl) {
-//    var collection = new StacResource.Collection(collectionUrl);
-//    // For now we validate that it is a proper STAC collection
-//    return collection.isValid();
-//  }
+  // no import
+  //  @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
+  //  public boolean validateLocalImport(String collectionUrl) {
+  //    var collection = new StacResource.Collection(collectionUrl);
+  //    // For now we validate that it is a proper STAC collection
+  //    return collection.isValid();
+  //  }
 
   // not needed - we don't import STAC resources directly
-//  @Importer(
-//      schema = "stac.import",
-//      knowledgeClass = KlabAsset.KnowledgeClass.RESOURCE,
-//      description = "Imports a STAC resource",
-//      properties = {
-//        @KlabFunction.Argument(
-//            name = "collection",
-//            type = Artifact.Type.URL,
-//            description = "URL of the collection."),
-//        @KlabFunction.Argument(
-//            name = "asset",
-//            type = Artifact.Type.TEXT,
-//            optional = true,
-//            description = "Asset ID."),
-//        @KlabFunction.Argument(
-//            name = "band",
-//            type = Artifact.Type.NUMBER,
-//            optional = true,
-//            description = "Raster band."),
-//      })
-//  public static Resource importSTAC(Parameters<String> properties) {
-//    var collectionUrl = properties.get("collection", String.class);
-//    var assetId = properties.get("asset", String.class);
-//    var collection = new StacResource.Collection(collectionUrl);
-//    var urn = collectionUrl.substring(collection.getId().lastIndexOf("/") + 1) + "-" + assetId;
-//
-//    var builder =
-//        Resource.builder(urn)
-//            .withServiceId("geospatial")
-//            .withParameters(properties)
-//            .withAdapterType("stac")
-//            .withType(
-//                getType(
-//                    collectionUrl,
-//                    assetId)); // We need to know if it is a raster or a vector or whatever
-//
-//    // TODO add more metadata
-//    builder
-//        .withMetadata(Metadata.IM_KEYWORDS, collection.getKeywords())
-//        .withMetadata(Metadata.DC_NAME, collection.getTitle())
-//        .withMetadata("DOI", collection.getDoi())
-//        .withMetadata("license", collection.getLicense());
-//
-//    var collectionId = collection.getId();
-//
-//    var catalog = collection.getCatalog();
-//    HMStacManager manager = new HMStacManager(catalog.getUrl(), null);
-//
-//    builder.withGeometry(readGeometry(collection.getData()));
-//    if (false) { // Manage the errors
-//      ResourceSet.empty(Notification.error("Cannot import the given STAC resource"));
-//    }
-//    return builder.build();
-//  }
+  //  @Importer(
+  //      schema = "stac.import",
+  //      knowledgeClass = KlabAsset.KnowledgeClass.RESOURCE,
+  //      description = "Imports a STAC resource",
+  //      properties = {
+  //        @KlabFunction.Argument(
+  //            name = "collection",
+  //            type = Artifact.Type.URL,
+  //            description = "URL of the collection."),
+  //        @KlabFunction.Argument(
+  //            name = "asset",
+  //            type = Artifact.Type.TEXT,
+  //            optional = true,
+  //            description = "Asset ID."),
+  //        @KlabFunction.Argument(
+  //            name = "band",
+  //            type = Artifact.Type.NUMBER,
+  //            optional = true,
+  //            description = "Raster band."),
+  //      })
+  //  public static Resource importSTAC(Parameters<String> properties) {
+  //    var collectionUrl = properties.get("collection", String.class);
+  //    var assetId = properties.get("asset", String.class);
+  //    var collection = new StacResource.Collection(collectionUrl);
+  //    var urn = collectionUrl.substring(collection.getId().lastIndexOf("/") + 1) + "-" + assetId;
+  //
+  //    var builder =
+  //        Resource.builder(urn)
+  //            .withServiceId("geospatial")
+  //            .withParameters(properties)
+  //            .withAdapterType("stac")
+  //            .withType(
+  //                getType(
+  //                    collectionUrl,
+  //                    assetId)); // We need to know if it is a raster or a vector or whatever
+  //
+  //    // TODO add more metadata
+  //    builder
+  //        .withMetadata(Metadata.IM_KEYWORDS, collection.getKeywords())
+  //        .withMetadata(Metadata.DC_NAME, collection.getTitle())
+  //        .withMetadata("DOI", collection.getDoi())
+  //        .withMetadata("license", collection.getLicense());
+  //
+  //    var collectionId = collection.getId();
+  //
+  //    var catalog = collection.getCatalog();
+  //    HMStacManager manager = new HMStacManager(catalog.getUrl(), null);
+  //
+  //    builder.withGeometry(readGeometry(collection.getData()));
+  //    if (false) { // Manage the errors
+  //      ResourceSet.empty(Notification.error("Cannot import the given STAC resource"));
+  //    }
+  //    return builder.build();
+  //  }
 
-//  public static Geometry readGeometry(JSONObject collection) {
-//    GeometryBuilder gBuilder = Geometry.builder();
-//
-//    JSONObject extent = collection.getJSONObject("extent");
-//    var bbox = extent.getJSONObject("spatial").getJSONArray("bbox").getJSONArray(0).toList();
-//    gBuilder
-//        .space()
-//        .boundingBox(
-//            Double.parseDouble(bbox.get(0).toString()),
-//            Double.parseDouble(bbox.get(1).toString()),
-//            Double.parseDouble(bbox.get(2).toString()),
-//            Double.parseDouble(bbox.get(3).toString()));
-//
-//    var interval =
-//        extent.getJSONObject("temporal").getJSONArray("interval").getJSONArray(0).toList();
-//    if (interval.get(0) != null) {
-//      gBuilder.time().start(Instant.parse(interval.get(0).toString()).toEpochMilli());
-//    }
-//    if (interval.size() > 1 && interval.get(1) != null) {
-//      gBuilder.time().end(Instant.parse(interval.get(1).toString()).toEpochMilli());
-//    }
-//
-//    // TODO find non-ad-hoc cases
-//    if (collection.getString("id").equals("slovak_SK_v5_reference-points_EUNIS2012")) {
-//      return gBuilder
-//          .build()
-//          .withProjection(Projection.DEFAULT_PROJECTION_CODE)
-//          .withTimeType("logical");
-//    }
-//    return gBuilder.build().withProjection(Projection.DEFAULT_PROJECTION_CODE).withTimeType("grid");
-//  }
+  //  public static Geometry readGeometry(JSONObject collection) {
+  //    GeometryBuilder gBuilder = Geometry.builder();
+  //
+  //    JSONObject extent = collection.getJSONObject("extent");
+  //    var bbox = extent.getJSONObject("spatial").getJSONArray("bbox").getJSONArray(0).toList();
+  //    gBuilder
+  //        .space()
+  //        .boundingBox(
+  //            Double.parseDouble(bbox.get(0).toString()),
+  //            Double.parseDouble(bbox.get(1).toString()),
+  //            Double.parseDouble(bbox.get(2).toString()),
+  //            Double.parseDouble(bbox.get(3).toString()));
+  //
+  //    var interval =
+  //        extent.getJSONObject("temporal").getJSONArray("interval").getJSONArray(0).toList();
+  //    if (interval.get(0) != null) {
+  //      gBuilder.time().start(Instant.parse(interval.get(0).toString()).toEpochMilli());
+  //    }
+  //    if (interval.size() > 1 && interval.get(1) != null) {
+  //      gBuilder.time().end(Instant.parse(interval.get(1).toString()).toEpochMilli());
+  //    }
+  //
+  //    // TODO find non-ad-hoc cases
+  //    if (collection.getString("id").equals("slovak_SK_v5_reference-points_EUNIS2012")) {
+  //      return gBuilder
+  //          .build()
+  //          .withProjection(Projection.DEFAULT_PROJECTION_CODE)
+  //          .withTimeType("logical");
+  //    }
+  //    return
+  // gBuilder.build().withProjection(Projection.DEFAULT_PROJECTION_CODE).withTimeType("grid");
+  //  }
 }
