@@ -64,7 +64,7 @@ public class RasterAdapter {
 
     public static Interpolation getDefaultForType(Observable semantics) {
       return switch (semantics.getDescriptionType()) {
-        case QUANTIFICATION -> Interpolation.BICUBIC;
+        case QUANTIFICATION, MEASUREMENT, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
         case CATEGORIZATION, VERIFICATION, DETECTION -> Interpolation.NEAREST_NEIGHBOR;
         case VOID,
             INSTANTIATION,
@@ -100,11 +100,7 @@ public class RasterAdapter {
     GridCoverage coverage = RasterEncoder.INSTANCE.getCoverage(resource, geometry);
 
     RasterEncoder.INSTANCE.encodeFromCoverage(
-        resource,
-        Utils.Resources.overrideParameters(resource, urn),
-        coverage,
-        geometry,
-        builder);
+        resource, Utils.Resources.overrideParameters(resource, urn), coverage, geometry, builder);
   }
 
   @Importer(
