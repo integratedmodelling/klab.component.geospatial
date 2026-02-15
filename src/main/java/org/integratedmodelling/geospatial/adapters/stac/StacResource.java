@@ -308,14 +308,14 @@ public class StacResource {
       var str = space.toString();
 
       var envelope = space.getEnvelope();
-      var env =
-          EnvelopeImpl.create(
-              envelope.getMinX(),
-              envelope.getMaxX(),
-              envelope.getMinY(),
-              envelope.getMaxY(),
-              space.getProjection());
-      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
+//      var env =
+//          EnvelopeImpl.create(
+//              envelope.getMinX(),
+//              envelope.getMaxX(),
+//              envelope.getMinY(),
+//              envelope.getMaxY(),
+//              space.getProjection());
+//      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
       // GeometryRepository.INSTANCE.geometry(poly);
       // collection.setGeometryFilter(poly);
       double[] bbox = {
