@@ -284,64 +284,6 @@ public class StacResource {
       }
       return true;
     }
-
-    //    public GridCoverage2D getSTACCoverage(
-    //        Data.Builder builder, Space space, Time time, String assetId, Scope scope)
-    //        throws Exception {
-    //      GridCoverage2D gridCoverage = null;
-    //      try {
-    //        var envelope = space.getEnvelope();
-    //        double[] bbox = {
-    //          envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()
-    //        };
-    //        var start = time.getStart();
-    //        var end = time.getEnd();
-    //        gridCoverage = getDataFromCOllection(url, bbox, assetId, start.toString(),
-    // end.toString());
-    //
-    //      } catch (IOException | InterruptedException e) {
-    //        e.printStackTrace();
-    //      }
-    //      return gridCoverage;
-    //    }
-
-    //    private static GridCoverage2D getDataFromCOllection(
-    //        String collectionURL, double[] bbox, String assetId, String startTime, String endTime)
-    //        throws Exception {
-    //
-    //      File coverageFile = File.createTempFile("geo", ".tiff");
-    //      coverageFile.deleteOnExit();
-    //      JSONObject collectionPostReq = new JSONObject();
-    //      collectionPostReq.put("collection_url", collectionURL); // The url to the COG
-    //      collectionPostReq.put("bbox", bbox);
-    //      collectionPostReq.put("asset", assetId);
-    //      collectionPostReq.put("start_time", startTime);
-    //      collectionPostReq.put("end_time", endTime);
-    //
-    //      kong.unirest.HttpResponse<File> stacQuerierResponse =
-    //          Unirest.post("https://stac-utils.integratedmodelling.org/stac_query")
-    //              .header("Content-Type", "application/json")
-    //              .body(collectionPostReq)
-    //              .connectTimeout(600000)
-    //              .socketTimeout(600000)
-    //              .asObject(
-    //                  r -> {
-    //                    try (InputStream in = r.getContent();
-    //                        OutputStream out = new FileOutputStream(coverageFile)) {
-    //                      byte[] buffer = new byte[8192];
-    //                      int bytesRead;
-    //                      while ((bytesRead = in.read(buffer)) != -1) {
-    //                        out.write(buffer, 0, bytesRead);
-    //                      }
-    //                    } catch (IOException e) {
-    //                      throw new RuntimeException("Error writing response to file", e);
-    //                    }
-    //                    return coverageFile;
-    //                  });
-    //
-    //      return OmsRasterReader.readRaster(coverageFile.getAbsolutePath());
-    //    }
-
     public GridCoverage2D getCoverage(
         Data.Builder builder, Space space, Time time, String assetId, Scope scope)
         throws Exception {
@@ -396,7 +338,7 @@ public class StacResource {
       if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
         sortByDate(items, builder);
       }
-      // TODO check the usage of space.getStandardizedHeight() and space.getStandardizedHeight()
+
       RegionMap region =
           RegionMap.fromBoundsAndGrid(
               space.getEnvelope().getMinX(),
@@ -449,10 +391,10 @@ public class StacResource {
   }
 
   public class Item {
+
     private final String url;
     private final String id;
     private final JSONObject data;
-    // Geometry or bbox
     private final Geometry geometry;
     private final Instant start;
     private final Instant end;
@@ -475,7 +417,7 @@ public class StacResource {
       }
       this.data = response.getBody().getObject();
       if (data.has("type") || !data.getString("type").equalsIgnoreCase("Feature")) {
-        nonStandardWarnings.add("The STAC collection " + this.url + " is does not have type=item.");
+        nonStandardWarnings.add("The STAC collection " + this.url + " does not have type=item.");
         throw new KlabResourceAccessException("Data at " + url + " is not a valid STAC item");
       }
 
