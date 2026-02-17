@@ -195,6 +195,12 @@ public class WCSAdapter {
     return ret;
   }
 
+  @ResourceAdapter.Type
+  public Artifact.Type getType(Resource resource) {
+    // TODO check the asset types - for now assume it's numbers from WCS since they are coverages essentially numbers
+    return Artifact.Type.NUMBER;
+  }
+
   @ResourceAdapter.Encoder
   public void encode(
       Resource resource,
