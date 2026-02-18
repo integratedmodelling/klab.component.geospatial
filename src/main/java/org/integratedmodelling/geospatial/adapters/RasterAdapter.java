@@ -50,7 +50,7 @@ public class RasterAdapter {
   /** Interpolation type for metadata */
   public static final String INTERPOLATION_TYPE_FIELD = "interpolation";
 
-  /** Safe interpolation types with JAI name equivalent */
+  /** Safe interpolation types with ImageN name equivalent */
   public enum Interpolation {
     BILINEAR("bilinear"),
     NEAREST_NEIGHBOR("nearest"),

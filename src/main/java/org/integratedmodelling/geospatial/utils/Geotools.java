@@ -1059,7 +1059,7 @@ public class Geotools {
   //      return;
   //    }
   //
-  //    ParameterBlockJAI pb = new ParameterBlockJAI("Constant");
+  //    ParameterBlockImageN pb = new ParameterBlockImageN("Constant");
   //    pb.setParameter("width", (float) IMAGE_WIDTH);
   //    pb.setParameter("height", (float) IMAGE_HEIGHT);
   //    pb.setParameter("bandValues", new Double[] {0.0d});
@@ -1070,9 +1070,9 @@ public class Geotools {
   //    layout.setTileWidth(tileWidth);
   //    layout.setTileHeight(tileWidth);
   //
-  //    RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+  //    RenderingHints hints = new RenderingHints(ImageN.KEY_IMAGE_LAYOUT, layout);
   //
-  //    RenderedOp image = JAI.create("Constant", pb, hints);
+  //    RenderedOp image = ImageN.create("Constant", pb, hints);
   //
   //    GeoTiffWriter writer = new GeoTiffWriter(file, null);
   //    GridCoverageFactory factory = new GridCoverageFactory();
