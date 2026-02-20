@@ -21,9 +21,9 @@
 //import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 //import org.geotools.data.shapefile.dbf.DbaseFileWriter;
 //import org.geotools.gce.geotiff.GeoTiffWriter;
-//import org.geotools.styling.ColorMap;
-//import org.geotools.styling.ColorMapEntry;
-//import org.geotools.styling.RasterSymbolizer;
+//import org.geotools.api.style.ColorMap;
+//import org.geotools.api.style.ColorMapEntry;
+//import org.geotools.api.style.RasterSymbolizer;
 //
 //import it.geosolutions.imageio.plugins.tiff.BaselineTIFFTagSet;
 //

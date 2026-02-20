@@ -42,7 +42,7 @@ import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
-//import org.opengis.coverage.grid.GridCoverage;
+//import org.geotools.api.coverage.grid.GridCoverage;
 import org.springframework.http.MediaType;
 
 import java.io.File;

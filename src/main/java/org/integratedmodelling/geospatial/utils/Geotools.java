@@ -65,7 +65,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -103,7 +103,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -141,7 +141,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -769,7 +769,7 @@ public class Geotools {
   //        tileHeight = height;
   //      }
   //
-  //      Envelope2D envelope = new Envelope2D(crs, 0, 0, width, height);
+  //      ReferencedEnvelope envelope = new ReferencedEnvelope(crs, 0, 0, width, height);
   //      SampleModel sampleModel =
   //          new ComponentSampleModel(
   //              DataBuffer.TYPE_FLOAT, tileWidth, tileHeight, 1, tileWidth, new int[] {0});

@@ -13,7 +13,7 @@ import org.geotools.data.geojson.GeoJSONReader;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.exceptions.KlabValidationException;
-//import org.opengis.feature.simple.SimpleFeature;
+//import org.geotools.api.feature.simple.SimpleFeature;
 
 public class StacParser {
 
