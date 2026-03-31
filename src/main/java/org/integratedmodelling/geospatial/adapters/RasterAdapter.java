@@ -64,7 +64,7 @@ public class RasterAdapter {
 
     public static Interpolation getDefaultForType(Observable semantics) {
       return switch (semantics.getDescriptionType()) {
-        case QUANTIFICATION, MEASUREMENT, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
+        case QUANTIFICATION, MEASURE, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
         case CATEGORIZATION, VERIFICATION, DETECTION -> Interpolation.NEAREST_NEIGHBOR;
         case VOID,
             INSTANTIATION,
