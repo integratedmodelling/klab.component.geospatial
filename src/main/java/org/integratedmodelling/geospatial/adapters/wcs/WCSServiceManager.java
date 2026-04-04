@@ -220,7 +220,7 @@ public class WCSServiceManager {
 
     public String getIdentifier() {
       describeCoverage();
-      return identifier;
+      return identifier == null ? name : identifier;
     }
 
     /**
@@ -231,6 +231,7 @@ public class WCSServiceManager {
      */
     public String getRequestIdentifier() {
       describeCoverage();
+      var identifier = getIdentifier();
       return translateDoubleUnderscoreToNamespaceSeparator
           ? identifier.replaceAll("__", ":")
           : identifier;
@@ -305,7 +306,7 @@ public class WCSServiceManager {
           if (coverage == null) {
             try (InputStream input = url.openStream()) {
               String content = IOUtils.toString(input, StandardCharsets.UTF_8);
-              coverage = (Map<?, ?>) U.fromXmlMap(content);
+              coverage = U.fromXmlMap(content);
               Map<Object, Object> tocache = new HashMap<>(coverage);
               tocache.put("timestamp", System.currentTimeMillis());
               wcsCache.put(url.toString(), Utils.Json.asString(tocache));
