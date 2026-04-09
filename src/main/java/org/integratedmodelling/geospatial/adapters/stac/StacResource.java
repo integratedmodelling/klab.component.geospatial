@@ -9,6 +9,7 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -350,7 +351,7 @@ public class StacResource {
 
       ReferencedEnvelope regionEnvelope =
           new ReferencedEnvelope(
-              region.toEnvelope(), ((ProjectionImpl) space.getProjection()).getCRS());
+              region.toEnvelope(), (CoordinateReferenceSystem) ((ProjectionImpl) space.getProjection()).getCRS());
 
       RegionMap regionTransformed =
           RegionMap.fromEnvelopeAndGrid(

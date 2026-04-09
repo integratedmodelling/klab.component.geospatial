@@ -1,20 +1,36 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.stac.HMStacItem;
+import org.hortonmachine.gears.io.stac.HMStacManager;
+import org.hortonmachine.gears.libs.modules.HMRaster;
+import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
+import org.hortonmachine.gears.utils.RegionMap;
+import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabException;
+import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Tile;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
+import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 
 /**
  * STAC is service-bound, so it can be embedded in a runtime.
@@ -82,7 +98,6 @@ public class StacAdapter {
     GridCoverage2D coverage = null;
     try {
       coverage = collection.getCoverage(builder, space, time, assetId, scope);
-      //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       e.printStackTrace(); // get the stack trace
       builder.notification(

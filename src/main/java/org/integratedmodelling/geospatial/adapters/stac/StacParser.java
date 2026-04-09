@@ -59,7 +59,7 @@ public class StacParser {
 
   private static SimpleFeature getItemAsFeature(String itemUrl) throws IOException {
     HttpResponse<JsonNode> response = Unirest.get(itemUrl).asJson();
-    return GeoJSONReader.parseFeature(response.getBody().toString());
+    return (SimpleFeature) GeoJSONReader.parseFeature(response.getBody().toString());
   }
 
   /**

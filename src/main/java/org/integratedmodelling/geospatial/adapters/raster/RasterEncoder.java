@@ -24,6 +24,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.media.jai.*;
+import org.eclipse.imagen.Interpolation;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.coverage.grid.GridCoverage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 import javax.xml.bind.JAXBContext;
@@ -44,9 +47,6 @@ import org.geotools.data.shapefile.dbf.DbaseFileWriter;
 import org.geotools.gce.geotiff.GeoTiffFormat;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.styling.ColorMap;
-import org.geotools.styling.ColorMapEntry;
-import org.geotools.styling.RasterSymbolizer;
 import org.geotools.util.factory.Hints;
 import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.geospatial.adapters.RasterAdapter;
@@ -73,8 +73,6 @@ import org.integratedmodelling.klab.common.data.ExportFileCache;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
-import org.opengis.coverage.grid.GridCoverage;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * The {@code RasterEncoder} adapts a raster resource (file-based) to a passed geometry and builds
@@ -226,7 +224,7 @@ public enum RasterEncoder {
     double maxValue = Double.MIN_VALUE;
     for (int i = 0; i < nBands; i++) {
       double currentValue = iterator.getSampleDouble((int) x, (int) y, i);
-      if (currentValue == Double.NaN) {
+      if (Double.isNaN(currentValue)) {
         continue;
       }
       if (currentValue > maxValue) {
@@ -321,31 +319,31 @@ public enum RasterEncoder {
   private CoordinateReferenceSystem getCrs(Geometry geometry) {
     var scale = Scale.create(geometry);
     var space = scale.getSpace();
-    return ((ProjectionImpl) space.getProjection()).getCoordinateReferenceSystem();
+    return (CoordinateReferenceSystem) ((ProjectionImpl) space.getProjection()).getCoordinateReferenceSystem();
   }
 
-  private Interpolation getInterpolation(Parameters<String> metadata) {
+  private org.eclipse.imagen.Interpolation getInterpolation(Parameters<String> metadata) {
 
     String method = metadata.get(RasterAdapter.INTERPOLATION_PARAM, String.class);
     if (method != null) {
       switch (method) {
         case "bilinear" -> {
-          return new InterpolationBilinear();
+          return Interpolation.getInstance(Interpolation.INTERP_BILINEAR);
         }
         case "nearest" -> {
-          return new InterpolationNearest();
+          return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
         }
         case "bicubic" -> {
           // TODO CHECK BITS
-          return new InterpolationBicubic(8);
+          return Interpolation.getInstance(Interpolation.INTERP_BICUBIC);
         }
         case "bicubic2" -> {
           // TODO CHECK BITS
-          return new InterpolationBicubic2(8);
+          return Interpolation.getInstance(Interpolation.INTERP_BICUBIC_2);
         }
       }
     }
-    return new InterpolationNearest();
+    return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
   }
 
   private ReferencedEnvelope getEnvelope(Geometry geometry, CoordinateReferenceSystem crs) {
@@ -428,7 +426,7 @@ public enum RasterEncoder {
     return readCoverage(mainFile);
   }
 
-  public GridCoverage readCoverage(File mainFile) {
+  public GridCoverage2D readCoverage(File mainFile) {
 
     GridCoverage2D ret = null;
     AbstractGridFormat format = GridFormatFinder.findFormat(mainFile);

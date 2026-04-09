@@ -1,5 +1,6 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import org.geotools.coverage.grid.GridCoverage2D;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
@@ -97,10 +98,10 @@ public class RasterAdapter {
       Observable observable,
       Scope scope) {
     builder.notification(Notification.debug("Encoding a raster."));
-    GridCoverage coverage = RasterEncoder.INSTANCE.getCoverage(resource, geometry);
+    GridCoverage coverage = (GridCoverage) RasterEncoder.INSTANCE.getCoverage(resource, geometry);
 
     RasterEncoder.INSTANCE.encodeFromCoverage(
-        resource, Utils.Resources.overrideParameters(resource, urn), coverage, geometry, builder);
+        resource, Utils.Resources.overrideParameters(resource, urn), (org.geotools.api.coverage.grid.GridCoverage) coverage, geometry, builder);
   }
 
   @Importer(

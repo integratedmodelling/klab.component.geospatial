@@ -8,7 +8,6 @@ import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
-import org.hortonmachine.gears.utils.CrsUtilities;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
 import org.integratedmodelling.common.authentication.Authentication;
@@ -30,6 +29,7 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.hortonmachine.gears.utils.crs.CrsUtilities;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -92,7 +92,7 @@ public class StacEngine {
         CoordinateReferenceSystem crs =
             features.get(0).getFeatureType().getCoordinateReferenceSystem();
         if (crs == null) {
-          crs = CrsUtilities.getCrsFromSrid(4326); // We go to the standard
+          crs = (CoordinateReferenceSystem) CrsUtilities.getCrsFromSrid(4326); // We go to the standard
         }
 
         // To HM items
@@ -101,7 +101,7 @@ public class StacEngine {
                 .map(
                     f -> {
                       try {
-                        return HMStacItem.fromSimpleFeature(f);
+                        return HMStacItem.fromSimpleFeature((org.geotools.api.feature.simple.SimpleFeature) f);
                       } catch (Exception e) {
                         builder.notification(
                             Notification.warning(
@@ -136,14 +136,7 @@ public class StacEngine {
           "Cannot access to STAC collection " + collection.getUrl());
     }
 
-    if (collection == null) {
-      throw new KlabResourceAccessException(
-          "Collection "
-              + resource.getParameters().get("collection", String.class)
-              + " cannot be found.");
-    }
-
-    // TODO for now, we do not manage the semantics for the MergeMode
+      // TODO for now, we do not manage the semantics for the MergeMode
     HMRaster.MergeMode mergeMode = HMRaster.MergeMode.SUM;
     /*
     IObservable targetSemantics = scope.getTargetArtifact() instanceof Observation
@@ -257,7 +250,7 @@ public class StacEngine {
 
     ReferencedEnvelope regionEnvelope =
         new ReferencedEnvelope(
-            region.toEnvelope(), ((ProjectionImpl) space.getProjection()).getCRS());
+            region.toEnvelope(), (org.geotools.api.referencing.crs.CoordinateReferenceSystem) ((ProjectionImpl) space.getProjection()).getCRS());
     RegionMap regionTransformed =
         RegionMap.fromEnvelopeAndGrid(
             regionEnvelope,

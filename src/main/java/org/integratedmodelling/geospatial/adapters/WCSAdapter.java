@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import oms3.dsl.Param;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
@@ -269,7 +270,7 @@ public class WCSAdapter {
     }
   }
 
-  private GridCoverage getCoverage(
+  private GridCoverage2D getCoverage(
       WCSServiceManager.WCSLayer layer,
       WCSServiceManager service,
       Observable observable,
@@ -366,7 +367,7 @@ public class WCSAdapter {
             new HMRaster.HMRasterWritableBuilder()
                 .setName("padded")
                 .setRegion(region)
-                .setCrs(projection.getCRS())
+                .setCrs((CoordinateReferenceSystem) projection.getCRS())
                 .setNoValue(raster.getNovalue())
                 .build();
         paddedRaster.mapRaster(null, raster, null);
