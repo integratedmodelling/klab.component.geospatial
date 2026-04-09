@@ -6,6 +6,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import oms3.dsl.Param;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
@@ -38,7 +39,6 @@ import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
-import org.opengis.coverage.grid.GridCoverage;
 import org.springframework.http.MediaType;
 
 import java.io.File;
@@ -270,7 +270,7 @@ public class WCSAdapter {
     }
   }
 
-  private GridCoverage2D getCoverage(
+  private GridCoverage getCoverage(
       WCSServiceManager.WCSLayer layer,
       WCSServiceManager service,
       Observable observable,

@@ -426,7 +426,7 @@ public enum RasterEncoder {
     return readCoverage(mainFile);
   }
 
-  public GridCoverage2D readCoverage(File mainFile) {
+  public GridCoverage readCoverage(File mainFile) {
 
     GridCoverage2D ret = null;
     AbstractGridFormat format = GridFormatFinder.findFormat(mainFile);
