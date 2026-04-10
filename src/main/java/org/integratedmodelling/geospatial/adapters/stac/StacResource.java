@@ -1,9 +1,10 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
-import java.io.*;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -13,6 +14,7 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.stac.HMStacAsset;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
@@ -286,7 +288,7 @@ public class StacResource {
       return true;
     }
     public GridCoverage2D getCoverage(
-        Data.Builder builder, Space space, Time time, String assetId, Scope scope)
+            Data.Builder builder, Space space, Time time, String bandId, Scope scope)
         throws Exception {
       LogProgressMonitor lpm = new LogProgressMonitor();
       var manager = new HMStacManager(catalog.getUrl(), lpm);
@@ -336,11 +338,9 @@ public class StacResource {
         throw new KlabIllegalStateException("No STAC items found for this context.");
       }
       builder.notification(Notification.debug("Found " + items.size() + " STAC items."));
-      if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
         sortByDate(items, builder);
-      }
 
-      RegionMap region =
+        RegionMap region =
           RegionMap.fromBoundsAndGrid(
               space.getEnvelope().getMinX(),
               space.getEnvelope().getMaxX(),
@@ -357,21 +357,39 @@ public class StacResource {
           RegionMap.fromEnvelopeAndGrid(
               regionEnvelope, (int) grid.getXCells(), (int) grid.getYCells());
 
-      Set<Integer> EPSGsAtItems =
-          items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
-      if (EPSGsAtItems.size() > 1) {
-        builder.notification(
-            Notification.warning(
-                "Multiple EPSGs found on the items "
-                    + EPSGsAtItems
-                    + ". The reprojection could affect the data."));
-      }
+      //      Set<Integer> EPSGsAtItems =
+//          items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
+//      if (EPSGsAtItems.size() > 1) {
+//        builder.notification(
+//            Notification.warning(
+//                "Multiple EPSGs found on the items "
+//                    + EPSGsAtItems
+//                    + ". The reprojection could affect the data."));
+//      }
+
+      var p = new Predicate<HMStacAsset>() {
+        @Override
+        public boolean test(HMStacAsset asset) { // Assuming for now that "eo:bands" would be there
+                    com.fasterxml.jackson.databind.JsonNode bands = asset.getAssetNode().get("eo:bands");
+                    if (bands != null && bands.isArray()) {
+                        ArrayNode bandsArray = (ArrayNode) bands;
+                        for (com.fasterxml.jackson.databind.JsonNode bandNode : bandsArray) {
+                            String bandName = bandNode.get("name").asText();
+                            if (bandName.equals(bandId)) { // under eo:band it's one of the band
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+        };
+
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
       HMRaster outRaster =
           collection.readRasterBandOnRegion(
-              regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
+              regionTransformed, p, items, allowTransform, mergeMode, lpm);
       return outRaster.buildCoverage();
     }
 
@@ -384,9 +402,9 @@ public class StacResource {
       builder.notification(
           Notification.debug(
               "Ordered STAC items. First: ["
-                  + items.get(0).getTimestamp()
+                  + items.getFirst().getTimestamp()
                   + "]; Last ["
-                  + items.get(items.size() - 1).getTimestamp()
+                  + items.getLast().getTimestamp()
                   + "]"));
     }
   }
