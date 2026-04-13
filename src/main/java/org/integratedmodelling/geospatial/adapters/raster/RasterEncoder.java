@@ -20,12 +20,12 @@ import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-import org.eclipse.imagen.*;
+import org.eclipse.imagen.Interpolation;
 import org.eclipse.imagen.iterator.RandomIter;
 import org.eclipse.imagen.iterator.RandomIterFactory;
-import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.coverage.grid.GridCoverage;
+
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -205,7 +205,7 @@ public enum RasterEncoder {
     double maxValue = Double.MIN_VALUE;
     for (int i = 0; i < nBands; i++) {
       double currentValue = iterator.getSampleDouble((int) x, (int) y, i);
-      if (currentValue == Double.NaN) {
+      if (Double.isNaN(currentValue)) {
         continue;
       }
       if (currentValue > maxValue) {
@@ -300,31 +300,31 @@ public enum RasterEncoder {
   private CoordinateReferenceSystem getCrs(Geometry geometry) {
     var scale = Scale.create(geometry);
     var space = scale.getSpace();
-    return ((ProjectionImpl) space.getProjection()).getCoordinateReferenceSystem();
+    return (CoordinateReferenceSystem) ((ProjectionImpl) space.getProjection()).getCoordinateReferenceSystem();
   }
 
-  private Interpolation getInterpolation(Parameters<String> metadata) {
+  private org.eclipse.imagen.Interpolation getInterpolation(Parameters<String> metadata) {
 
     String method = metadata.get(RasterAdapter.INTERPOLATION_PARAM, String.class);
     if (method != null) {
       switch (method) {
         case "bilinear" -> {
-          return new InterpolationBilinear();
+          return Interpolation.getInstance(Interpolation.INTERP_BILINEAR);
         }
         case "nearest" -> {
-          return new InterpolationNearest();
+          return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
         }
         case "bicubic" -> {
           // TODO CHECK BITS
-          return new InterpolationBicubic(8);
+          return Interpolation.getInstance(Interpolation.INTERP_BICUBIC);
         }
         case "bicubic2" -> {
           // TODO CHECK BITS
-          return new InterpolationBicubic2(8);
+          return Interpolation.getInstance(Interpolation.INTERP_BICUBIC_2);
         }
       }
     }
-    return new InterpolationNearest();
+    return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
   }
 
   private ReferencedEnvelope getEnvelope(Geometry geometry, CoordinateReferenceSystem crs) {

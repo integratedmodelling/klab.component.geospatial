@@ -101,7 +101,7 @@ public class ColorScheme {
     }
 
     if (getNumberColors().size() > 0) {
-      if (state.getType() != Artifact.Type.NUMBER) {
+      if (state.getObservable().getArtifactType() != Artifact.Type.NUMBER) {
         return null;
       }
 
@@ -140,7 +140,7 @@ public class ColorScheme {
 //      ret = Triple.of(values, colors, labels);
 
     } else if (getCategoryColors().size() > 0) {
-      if (state.getType() != Artifact.Type.CONCEPT) {
+      if (state.getObservable().getArtifactType() != Artifact.Type.CONCEPT) {
         return null;
       }
     }

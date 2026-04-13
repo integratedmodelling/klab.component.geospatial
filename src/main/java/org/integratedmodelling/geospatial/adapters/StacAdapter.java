@@ -1,20 +1,37 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.processing.Operations;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.stac.HMStacItem;
+import org.hortonmachine.gears.io.stac.HMStacManager;
+import org.hortonmachine.gears.libs.modules.HMRaster;
+import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
+import org.hortonmachine.gears.utils.RegionMap;
+import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabException;
+import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Tile;
 import org.integratedmodelling.klab.api.scope.Scope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
+import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 
 /**
  * STAC is service-bound, so it can be embedded in a runtime.
@@ -40,16 +57,16 @@ import org.integratedmodelling.klab.api.services.runtime.Notification;
           description =
               "The URL pointing to the STAC collection file that contains the resource dataset."),
       @Parameter(
-          name = "asset",
+          name = "item.band.id",
           type = Artifact.Type.TEXT,
           optional = true,
           description =
               "The asset that is going to be retrieved from the items. Left it blank when the information is stored in the feature."),
       @Parameter(
-          name = "band",
+          name = "item.band.index",
           type = Artifact.Type.NUMBER,
           optional = true,
-          description = "For multiband rasters, this indicates the band to be retrieved."),
+          description = "For multiband rasters, this indicates the band to be retrieved. Leave it blank if there is only one band"),
     })
 public class StacAdapter {
 
@@ -75,14 +92,14 @@ public class StacAdapter {
       Scope scope) {
     var collection =
         new StacResource.Collection(resource.getParameters().get("collection", String.class));
-    var assetId = resource.getParameters().get("asset", String.class);
+    var assetId = resource.getParameters().get("item.band.id", String.class);
+    var band = resource.getParameters().get("item.band.index", Integer.class);
     var scale = Scale.create(geometry);
     var time = scale.getTime();
     var space = scale.getSpace();
     GridCoverage2D coverage = null;
     try {
       coverage = collection.getCoverage(builder, space, time, assetId, scope);
-      //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       e.printStackTrace(); // get the stack trace
       builder.notification(
@@ -91,13 +108,19 @@ public class StacAdapter {
               Notification.Outcome.Failure));
       return;
     }
+
+    if (band != null) { // This means that the coverage is multi band raster
+      // We would refer to band based on the Index and not the name
+      coverage = (GridCoverage2D) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
+    }
+
     RasterEncoder.INSTANCE.encodeFromCoverage(
         resource, Parameters.create(urn.getParameters()), coverage, geometry, builder);
   }
 
   @ResourceAdapter.Type
   public Artifact.Type getType(Resource resource) {
-    var asset = resource.getParameters().get("asset", String.class);
+    var asset = resource.getParameters().get("item.band.id", String.class);
     if (asset == null) {
       // no asset = we just want the items' geometry and properties.
       return Artifact.Type.OBJECT;

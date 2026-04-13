@@ -4,7 +4,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
-//import oms3.dsl.Param;
+import oms3.dsl.Param;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.grid.GridCoverage2D;
 //import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
@@ -42,7 +43,6 @@ import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
-//import org.geotools.api.coverage.grid.GridCoverage;
 import org.springframework.http.MediaType;
 
 import java.io.File;
@@ -198,6 +198,12 @@ public class WCSAdapter {
           "Unable to connect to WCS service at " + serviceUrl + " version " + version + ".");
     }
     return ret;
+  }
+
+  @ResourceAdapter.Type
+  public Artifact.Type getType(Resource resource) {
+    // TODO check the asset types - for now assume it's numbers from WCS since they are coverages essentially numbers
+    return Artifact.Type.NUMBER;
   }
 
   @ResourceAdapter.Encoder
@@ -365,7 +371,7 @@ public class WCSAdapter {
             new HMRaster.HMRasterWritableBuilder()
                 .setName("padded")
                 .setRegion(region)
-                .setCrs(projection.getCRS())
+                .setCrs((CoordinateReferenceSystem) projection.getCRS())
                 .setNoValue(raster.getNovalue())
                 .build();
         paddedRaster.mapRaster(null, raster, null);

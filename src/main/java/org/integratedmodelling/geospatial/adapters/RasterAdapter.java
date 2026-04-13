@@ -65,7 +65,7 @@ public class RasterAdapter {
 
     public static Interpolation getDefaultForType(Observable semantics) {
       return switch (semantics.getDescriptionType()) {
-        case QUANTIFICATION, MEASUREMENT, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
+        case QUANTIFICATION, MEASURE, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
         case CATEGORIZATION, VERIFICATION, DETECTION -> Interpolation.NEAREST_NEIGHBOR;
         case VOID,
             INSTANTIATION,
@@ -98,10 +98,10 @@ public class RasterAdapter {
       Observable observable,
       Scope scope) {
     builder.notification(Notification.debug("Encoding a raster."));
-    GridCoverage coverage = RasterEncoder.INSTANCE.getCoverage(resource, geometry);
+    GridCoverage coverage = (GridCoverage) RasterEncoder.INSTANCE.getCoverage(resource, geometry);
 
     RasterEncoder.INSTANCE.encodeFromCoverage(
-        resource, Utils.Resources.overrideParameters(resource, urn), coverage, geometry, builder);
+        resource, Utils.Resources.overrideParameters(resource, urn), (org.geotools.api.coverage.grid.GridCoverage) coverage, geometry, builder);
   }
 
   @Importer(

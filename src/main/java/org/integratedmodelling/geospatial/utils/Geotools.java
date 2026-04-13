@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.utils;
 
-import java.awt.*;
 import java.awt.image.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.function.Function;
 import org.eclipse.imagen.RasterFactory;
 import org.eclipse.imagen.iterator.RandomIterFactory;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
@@ -148,12 +148,12 @@ public class Geotools {
   //    return coverage;
   //  }
 
-  public static GridCoverage2D stateToCoverage(
+  public static GridCoverage stateToCoverage(
       Observation state, Storage.DoubleScanner scanner, ContextScope scope, boolean addKey) {
     return stateToCoverage(state, scanner, DataBuffer.TYPE_FLOAT, Float.NaN, scope, addKey);
   }
 
-  public static GridCoverage2D stateToCoverage(
+  public static GridCoverage stateToCoverage(
       Observation state,
       Storage.Scanner scanner,
       int type,
@@ -477,7 +477,7 @@ public class Geotools {
       var env = envImpl.getJTSEnvelope();
       var crs = env.getCoordinateReferenceSystem();
       crs = checkCrs(crs);
-      env = new ReferencedEnvelope(env, crs);
+      env = new ReferencedEnvelope( env, (org.geotools.api.referencing.crs.CoordinateReferenceSystem) crs);
       return env;
     }
     throw new KlabIllegalArgumentException("Envelope is not an instance of EnvelopeImpl");

@@ -9,8 +9,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import javax.imageio.ImageIO;
 
-import org.geotools.api.style.RasterSymbolizer;
-import org.geotools.api.style.Style;
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileWriter;
@@ -18,8 +17,8 @@ import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.map.GridCoverageLayer;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
+import org.geotools.styling.RasterSymbolizerImpl;
 import org.geotools.styling.StyleBuilder;
-import org.integratedmodelling.geospatial.adapters.raster.*;
 import org.integratedmodelling.geospatial.utils.Geotools;
 import org.integratedmodelling.klab.api.collections.Pair;
 import org.integratedmodelling.klab.api.collections.Parameters;
@@ -29,14 +28,12 @@ import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.KlabAsset;
-import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.api.services.runtime.extension.Library;
 import org.integratedmodelling.klab.api.services.runtime.extension.Reference;
-import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
 
 @Library(
@@ -108,12 +105,12 @@ public class GeodataIO {
 
       // Create default style. TODO - link to colormap specs in Observation
       StyleBuilder sb = new StyleBuilder();
-      RasterSymbolizer rs = sb.createRasterSymbolizer();
-      Style style = sb.createStyle(rs);
+      RasterSymbolizerImpl rs = (RasterSymbolizerImpl) sb.createRasterSymbolizer();
+      var style = sb.createStyle(rs);
 
       // Create map content and add layer
       MapContent map = new MapContent();
-      GridCoverageLayer layer = new GridCoverageLayer(coverage, style);
+      GridCoverageLayer layer = new GridCoverageLayer((GridCoverage2D) coverage, style);
       map.addLayer(layer);
 
       // Calculate dimensions preserving aspect ratio
@@ -198,7 +195,7 @@ public class GeodataIO {
       dir.getAbsoluteFile().getParentFile().mkdirs();
       out = new File(dir.getAbsoluteFile().getParentFile(), Utils.Files.getFileName(file));
     }
-    GridCoverage2D coverage = null;
+    GridCoverage coverage = null;
     DataKey dataKey = scope.getDigitalTwin().getStorageManager().getStorage(observation).getKey();
     File outQml = Utils.Files.changeExtension(out, "qml");
     if (dataKey != null) {
@@ -248,7 +245,7 @@ public class GeodataIO {
             Integer.toString(BaselineTIFFTagSet.TAG_SOFTWARE),
             "k.LAB (www.integratedmodelling.org)");
 
-        writer.write(coverage, null);
+        writer.write( coverage, null);
 
         if (dir != null && addStyle) {
           if (!doNotZip) {
