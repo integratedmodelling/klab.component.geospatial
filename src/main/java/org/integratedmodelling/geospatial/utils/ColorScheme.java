@@ -88,7 +88,7 @@ public class ColorScheme {
     Unit unitFrom = null;
     Unit unitTo = null;
     if (this.valueUnit != null) {
-//      unitFrom = UnitService.create(this.valueUnit);
+      //      unitFrom = UnitService.create(this.valueUnit);
       unitTo = state.getObservable().getUnit();
       if (unitTo == null) {
         return null;
@@ -100,8 +100,8 @@ public class ColorScheme {
       // TODO - compute the mapIndex passing the state and the locator
     }
 
-    if (getNumberColors().size() > 0) {
-      if (state.getType() != Artifact.Type.NUMBER) {
+    if (!getNumberColors().isEmpty()) {
+      if (state.getObservable().getArtifactType() != Artifact.Type.NUMBER) {
         return null;
       }
 
@@ -116,31 +116,31 @@ public class ColorScheme {
       String[] labels = new String[map.size()];
       int i = 0;
 
-////      StateSummary summary =
-////          relative ? Observations.INSTANCE.getStateSummary(state, locator) : null;
-////
-////      for (String key : map.keySet()) {
-////        List<Integer> rgb = map.get(key);
-////        double value = Double.parseDouble(key);
-////
-////        if (relative) {
-////          value =
-////              summary.getRange().get(0)
-////                  + (value * (summary.getRange().get(1) - summary.getRange().get(0)));
-////        } else if (unitFrom != null && !unitFrom.equals(unitTo)) {
-////          value = unitTo.convert(value, unitFrom).doubleValue();
-////        }
-//
-//        values[i] = value;
-//        colors[i] = new Color(rgb.get(0), rgb.get(1), rgb.get(2));
-//        labels[i] = key;
-//        i++;
-//      }
-//
-//      ret = Triple.of(values, colors, labels);
+      ////      StateSummary summary =
+      ////          relative ? Observations.INSTANCE.getStateSummary(state, locator) : null;
+      ////
+      ////      for (String key : map.keySet()) {
+      ////        List<Integer> rgb = map.get(key);
+      ////        double value = Double.parseDouble(key);
+      ////
+      ////        if (relative) {
+      ////          value =
+      ////              summary.getRange().get(0)
+      ////                  + (value * (summary.getRange().get(1) - summary.getRange().get(0)));
+      ////        } else if (unitFrom != null && !unitFrom.equals(unitTo)) {
+      ////          value = unitTo.convert(value, unitFrom).doubleValue();
+      ////        }
+      //
+      //        values[i] = value;
+      //        colors[i] = new Color(rgb.get(0), rgb.get(1), rgb.get(2));
+      //        labels[i] = key;
+      //        i++;
+      //      }
+      //
+      //      ret = Triple.of(values, colors, labels);
 
-    } else if (getCategoryColors().size() > 0) {
-      if (state.getType() != Artifact.Type.CONCEPT) {
+    } else if (!getCategoryColors().isEmpty()) {
+      if (state.getObservable().getArtifactType() != Artifact.Type.CONCEPT) {
         return null;
       }
     }
