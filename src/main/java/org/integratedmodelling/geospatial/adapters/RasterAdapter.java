@@ -1,20 +1,19 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import java.util.Set;
 import org.geotools.api.coverage.grid.GridCoverage;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
-import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Importer;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.api.utils.Utils;
-//import org.geotools.api.coverage.grid.GridCoverage;
-
-import java.util.Set;
 
 /**
  * File-based rasters, not embeddable. The implementation should enable promotion to STAC or WCS on
@@ -64,7 +63,7 @@ public class RasterAdapter {
     }
 
     public static Interpolation getDefaultForType(Observable semantics) {
-      return switch (semantics.getDescriptionType()) {
+      return switch (semantics.getContextualization()) {
         case QUANTIFICATION, MEASURE, VALUATION, TRANSFORMATION -> Interpolation.BICUBIC;
         case CATEGORIZATION, VERIFICATION, DETECTION -> Interpolation.NEAREST_NEIGHBOR;
         case VOID,
@@ -75,7 +74,7 @@ public class RasterAdapter {
             CLASSIFICATION,
             CHARACTERIZATION ->
             throw new IllegalArgumentException(
-                "Cannot interpolate data for " + semantics.getDescriptionType() + " observations");
+                "Cannot interpolate data for " + semantics.getContextualization() + " observations");
       };
     }
 
@@ -93,15 +92,15 @@ public class RasterAdapter {
   public void encode(
       Resource resource,
       Urn urn,
-      Data.Builder builder,
+      Storage.DoubleScanner builder,
       Geometry geometry,
       Observable observable,
-      Scope scope) {
-    builder.notification(Notification.debug("Encoding a raster."));
+      ContextScope scope) {
+//    scope.info(Notification.debug("Encoding a raster."));
     GridCoverage coverage = RasterEncoder.INSTANCE.getCoverage(resource, geometry);
 
     RasterEncoder.INSTANCE.encodeFromCoverage(
-        resource, Utils.Resources.overrideParameters(resource, urn), coverage, geometry, builder);
+        resource, Utils.Resources.overrideParameters(resource, urn), coverage, geometry, builder, scope);
   }
 
   @Importer(

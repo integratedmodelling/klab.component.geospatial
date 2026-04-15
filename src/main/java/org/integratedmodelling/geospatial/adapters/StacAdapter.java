@@ -6,12 +6,13 @@ import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
-import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
@@ -24,7 +25,7 @@ import org.integratedmodelling.klab.api.services.runtime.Notification;
 @ResourceAdapter(
     name = "stac",
     description =
-       """
+        """
            STAC is a standard for sharing geospatial data and metadata, enabling interoperability between
            different systems and services.
        """,
@@ -69,10 +70,10 @@ public class StacAdapter {
   public void encode(
       Resource resource,
       Urn urn,
-      Data.Builder builder,
+      Storage.DoubleScanner builder,
       Geometry geometry,
       Observable observable,
-      Scope scope) {
+      ContextScope scope) {
     var collection =
         new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
@@ -81,18 +82,16 @@ public class StacAdapter {
     var space = scale.getSpace();
     GridCoverage2D coverage = null;
     try {
-      coverage = collection.getCoverage(builder, space, time, assetId, scope);
+      coverage = collection.getCoverage(space, time, assetId, scope);
       //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
-      e.printStackTrace(); // get the stack trace
-      builder.notification(
-          Notification.error(
-              e instanceof KlabException ? e.getMessage() : "Cannot encode STAC resource",
-              Notification.Outcome.Failure));
+      scope.error(
+          e instanceof KlabException ? e.getMessage() : "Cannot encode STAC resource",
+          Notification.Outcome.Failure);
       return;
     }
     RasterEncoder.INSTANCE.encodeFromCoverage(
-        resource, Parameters.create(urn.getParameters()), coverage, geometry, builder);
+        resource, Parameters.create(urn.getParameters()), coverage, geometry, builder, scope);
   }
 
   @ResourceAdapter.Type

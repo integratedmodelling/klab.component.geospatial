@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.utils;
 
-import java.awt.*;
 import java.awt.image.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -480,7 +479,9 @@ public class Geotools {
       env = new ReferencedEnvelope(env, crs);
       return env;
     }
-    throw new KlabIllegalArgumentException("Envelope is not an instance of EnvelopeImpl");
+    throw new KlabIllegalArgumentException(
+        "Envelope is not an instance of EnvelopeImpl: "
+            + (envelope == null ? "NULL" : envelope.getClass().getName()));
   }
 
   public static CoordinateReferenceSystem checkCrs(CoordinateReferenceSystem crs) {
