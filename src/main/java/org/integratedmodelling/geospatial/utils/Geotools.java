@@ -1,63 +1,37 @@
 package org.integratedmodelling.geospatial.utils;
 
-import org.geotools.coverage.Category;
-import org.geotools.coverage.CoverageFactoryFinder;
-import org.geotools.coverage.GridSampleDimension;
-import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.GridCoverageFactory;
-import org.geotools.coverage.grid.io.AbstractGridCoverageWriter;
-import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
-import org.geotools.gce.geotiff.GeoTiffFormat;
-import org.geotools.gce.geotiff.GeoTiffWriteParams;
-import org.geotools.gce.geotiff.GeoTiffWriter;
-import org.geotools.geometry.Envelope2D;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.metadata.iso.citation.Citations;
-import org.geotools.referencing.CRS;
-import org.geotools.styling.ColorMapEntry;
-import org.geotools.styling.RasterSymbolizer;
-import org.geotools.swing.data.JFileDataStoreChooser;
-import org.integratedmodelling.common.knowledge.GeometryRepository;
-import org.integratedmodelling.klab.api.collections.Pair;
-import org.integratedmodelling.klab.api.data.Data;
-import org.integratedmodelling.klab.api.data.Storage;
-import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
-import org.integratedmodelling.klab.api.digitaltwin.Scheduler;
-import org.integratedmodelling.klab.api.exceptions.KlabIllegalArgumentException;
-import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
-import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.knowledge.Concept;
-import org.integratedmodelling.klab.api.knowledge.Observable;
-import org.integratedmodelling.klab.api.knowledge.observation.Observation;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.space.*;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Shape;
-import org.integratedmodelling.klab.api.scope.ContextScope;
-import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
-import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.integratedmodelling.klab.runtime.scale.space.ShapeImpl;
-import org.integratedmodelling.klab.runtime.scale.space.SpaceImpl;
-import org.jaitools.tiledimage.DiskMemImage;
-import org.opengis.metadata.Identifier;
-import org.opengis.metadata.citation.Citation;
-import org.opengis.parameter.ParameterValueGroup;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import javax.media.jai.*;
-import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
-import javax.media.jai.iterator.RectIterFactory;
-import javax.media.jai.iterator.WritableRectIter;
 import java.awt.*;
 import java.awt.image.*;
-import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import javax.media.jai.*;
+import javax.media.jai.iterator.RandomIter;
+import javax.media.jai.iterator.RandomIterFactory;
+import org.geotools.coverage.GridSampleDimension;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.metadata.iso.citation.Citations;
+import org.geotools.referencing.CRS;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
+import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Storage;
+import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
+import org.integratedmodelling.klab.api.exceptions.KlabIllegalArgumentException;
+import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
+import org.integratedmodelling.klab.api.geometry.Geometry;
+import org.integratedmodelling.klab.api.knowledge.Concept;
+import org.integratedmodelling.klab.api.knowledge.observation.Observation;
+import org.integratedmodelling.klab.api.knowledge.observation.scale.space.*;
+import org.integratedmodelling.klab.api.scope.ContextScope;
+import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
+import org.opengis.metadata.Identifier;
+import org.opengis.metadata.citation.Citation;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Geotools utilities. All scanners are assumed to scan according to {@link
@@ -511,7 +485,9 @@ public class Geotools {
       env = new ReferencedEnvelope(env, crs);
       return env;
     }
-    throw new KlabIllegalArgumentException("Envelope is not an instance of EnvelopeImpl");
+    throw new KlabIllegalArgumentException(
+        "Envelope is not an instance of EnvelopeImpl: "
+            + (envelope == null ? "NULL" : envelope.getClass().getName()));
   }
 
   public static CoordinateReferenceSystem checkCrs(CoordinateReferenceSystem crs) {

@@ -18,6 +18,7 @@ import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.RasterSymbolizer;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleBuilder;
+import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.raster.*;
 import org.integratedmodelling.geospatial.utils.Geotools;
 import org.integratedmodelling.klab.api.collections.Pair;
@@ -28,14 +29,12 @@ import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
 import org.integratedmodelling.klab.api.knowledge.KlabAsset;
-import org.integratedmodelling.klab.api.knowledge.Resource;
 import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.api.services.runtime.extension.Library;
 import org.integratedmodelling.klab.api.services.runtime.extension.Reference;
-import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
 
 @Library(
@@ -97,8 +96,18 @@ public class GeodataIO {
 
       var viewportXarg = arguments.get("viewportX", 800.0);
       var viewportYarg = arguments.get("viewportY", 800.0);
-      var viewportX = Double.valueOf(viewportXarg).intValue();
-      var viewportY = Double.valueOf(viewportYarg).intValue();
+      var viewportX = viewportXarg.intValue();
+      var viewportY = viewportYarg.intValue();
+
+      Logging.INSTANCE.info(
+          "Exporting PNG with viewport "
+              + viewportX
+              + "x"
+              + viewportY
+              + ": obs="
+              + observation
+              + ", scanner="
+              + scanner);
 
       var file = File.createTempFile("klab", ".png");
       var coverage =
