@@ -18,7 +18,7 @@ import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
 import org.hortonmachine.gears.utils.RegionMap;
 import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
-import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
@@ -26,7 +26,6 @@ import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Space;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Tile;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.time.Time;
 import org.integratedmodelling.klab.api.scope.Scope;
-import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
@@ -284,8 +283,8 @@ public class StacResource {
       }
       return true;
     }
-    public GridCoverage2D getCoverage(
-        Data.Builder builder, Space space, Time time, String assetId, Scope scope)
+
+    public GridCoverage2D getCoverage(Space space, Time time, String assetId, Scope scope)
         throws Exception {
       LogProgressMonitor lpm = new LogProgressMonitor();
       var manager = new HMStacManager(catalog.getUrl(), lpm);
@@ -334,9 +333,9 @@ public class StacResource {
       if (items.isEmpty()) {
         throw new KlabIllegalStateException("No STAC items found for this context.");
       }
-      builder.notification(Notification.debug("Found " + items.size() + " STAC items."));
+      scope.debug("Found " + items.size() + " STAC items.");
       if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
-        sortByDate(items, builder);
+        sortByDate(items, scope);
       }
 
       RegionMap region =
@@ -359,11 +358,10 @@ public class StacResource {
       Set<Integer> EPSGsAtItems =
           items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
       if (EPSGsAtItems.size() > 1) {
-        builder.notification(
-            Notification.warning(
-                "Multiple EPSGs found on the items "
-                    + EPSGsAtItems
-                    + ". The reprojection could affect the data."));
+        scope.warn(
+            "Multiple EPSGs found on the items "
+                + EPSGsAtItems
+                + ". The reprojection could affect the data.");
       }
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
@@ -374,19 +372,18 @@ public class StacResource {
       return outRaster.buildCoverage();
     }
 
-    private static void sortByDate(List<HMStacItem> items, Data.Builder builder) {
+    private static void sortByDate(List<HMStacItem> items, Scope scope) {
       if (items.stream().anyMatch(i -> i.getTimestamp() == null)) {
         throw new KlabIllegalStateException(
             "STAC items lack a timestamp and could not be sorted by date.");
       }
       items.sort(Comparator.comparing(HMStacItem::getTimestamp));
-      builder.notification(
-          Notification.debug(
-              "Ordered STAC items. First: ["
-                  + items.get(0).getTimestamp()
-                  + "]; Last ["
-                  + items.get(items.size() - 1).getTimestamp()
-                  + "]"));
+      scope.debug(
+          "Ordered STAC items. First: ["
+              + items.get(0).getTimestamp()
+              + "]; Last ["
+              + items.get(items.size() - 1).getTimestamp()
+              + "]");
     }
   }
 

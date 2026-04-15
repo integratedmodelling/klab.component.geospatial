@@ -4,7 +4,15 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
-import oms3.dsl.Param;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.hortonmachine.gears.io.rasterreader.OmsRasterReader;
 import org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter;
@@ -18,37 +26,20 @@ import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.collections.Triple;
 import org.integratedmodelling.klab.api.configuration.Configuration;
 import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.Version;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
 import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
-import org.integratedmodelling.klab.api.geometry.impl.GeometryImpl;
 import org.integratedmodelling.klab.api.knowledge.*;
-import org.integratedmodelling.klab.api.knowledge.observation.Observation;
-import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
 import org.integratedmodelling.klab.api.scope.ContextScope;
-import org.integratedmodelling.klab.api.scope.Scope;
-import org.integratedmodelling.klab.api.services.KlabService;
-import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-import org.integratedmodelling.klab.services.base.BaseService;
 import org.integratedmodelling.klab.utilities.Utils;
 import org.opengis.coverage.grid.GridCoverage;
-import org.springframework.http.MediaType;
-
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * WCS layer adapter. Keeps a size-bound cache of downloaded TIFFs to optimize transfers. NOTE: the
@@ -197,7 +188,8 @@ public class WCSAdapter {
 
   @ResourceAdapter.Type
   public Artifact.Type getType(Resource resource) {
-    // TODO check the asset types - for now assume it's numbers from WCS since they are coverages essentially numbers
+    // TODO check the asset types - for now assume it's numbers from WCS since they are coverages
+    // essentially numbers
     return Artifact.Type.NUMBER;
   }
 
@@ -205,10 +197,10 @@ public class WCSAdapter {
   public void encode(
       Resource resource,
       Urn urn,
-      Data.Builder builder,
+      Storage.DoubleScanner builder,
       Geometry geometry,
       Observable observable,
-      Scope scope) {
+      ContextScope scope) {
 
     WCSServiceManager service =
         getService(
@@ -220,27 +212,24 @@ public class WCSAdapter {
       var parameters = Utils.Resources.overrideParameters(resource, urn);
       var coverage = getCoverage(layer, service, observable, parameters, geometry);
       if (coverage == null) {
-        builder.notification(
-            Notification.error(
-                "Cannot build coverage for WCS layer "
-                    + resource.getParameters().get("wcsIdentifier", String.class)));
+        scope.error(
+            "Cannot build coverage for WCS layer "
+                + resource.getParameters().get("wcsIdentifier", String.class));
       } else {
         try {
           RasterEncoder.INSTANCE.encodeFromCoverage(
-              resource, parameters, coverage, geometry, builder);
+              resource, parameters, coverage, geometry, builder, scope);
         } catch (Throwable e) {
-          builder.notification(
-              Notification.error(
-                  "WCS encoding failed with exception: " + e.getMessage(),
-                  e,
-                  Notification.Outcome.Failure));
+          scope.error(
+              "WCS encoding failed with exception: " + e.getMessage(),
+              e,
+              Notification.Outcome.Failure);
         }
       }
     } else {
-      builder.notification(
-          Notification.error(
+      scope.error(
               "Problems accessing WCS layer "
-                  + resource.getParameters().get("wcsIdentifier", String.class)));
+                  + resource.getParameters().get("wcsIdentifier", String.class));
     }
   }
 
