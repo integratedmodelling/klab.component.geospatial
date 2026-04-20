@@ -16,6 +16,7 @@ import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 
 /**
  * STAC is service-bound, so it can be embedded in a runtime.
@@ -70,7 +71,7 @@ public class StacAdapter {
   public void encode(
       Resource resource,
       Urn urn,
-      Storage.DoubleScanner builder,
+      @KlabFunction.Output Storage.DoubleScanner builder,
       Geometry geometry,
       Observable observable,
       ContextScope scope) {

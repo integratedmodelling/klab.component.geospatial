@@ -37,6 +37,7 @@ import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
+import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
@@ -197,7 +198,7 @@ public class WCSAdapter {
   public void encode(
       Resource resource,
       Urn urn,
-      Storage.DoubleScanner builder,
+      @KlabFunction.Output Storage.DoubleScanner builder,
       Geometry geometry,
       Observable observable,
       ContextScope scope) {
@@ -228,8 +229,8 @@ public class WCSAdapter {
       }
     } else {
       scope.error(
-              "Problems accessing WCS layer "
-                  + resource.getParameters().get("wcsIdentifier", String.class));
+          "Problems accessing WCS layer "
+              + resource.getParameters().get("wcsIdentifier", String.class));
     }
   }
 
