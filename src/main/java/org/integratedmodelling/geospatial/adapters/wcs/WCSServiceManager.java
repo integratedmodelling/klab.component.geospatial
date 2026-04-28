@@ -1,6 +1,6 @@
 package org.integratedmodelling.geospatial.adapters.wcs;
 
-import com.github.underscore.lodash.U;
+import com.github.underscore.U;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;

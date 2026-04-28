@@ -57,7 +57,12 @@
                             <componentUsageRights>*</componentUsageRights>
                             <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
                             <componentVersion>1.0-SNAPSHOT</componentVersion>
-                            <!--                            <excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>-->
+                            <!--<excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>-->
+                            <!--<excludedDependencies>xerces:xercesImpl,xml-apis:xml-apis,xpp3:xpp3</excludedDependencies>-->
+                            <hostRuntimeArtifacts>
+                                org.integratedmodelling:klab.service.runtime.server:1.0.0-SNAPSHOT,
+                                org.integratedmodelling:klab.service.resources.server:1.0.0-SNAPSHOT
+                            </hostRuntimeArtifacts>
                         </configuration>
                     </execution>
                 </executions>
@@ -77,9 +82,11 @@
         </plugins>
     </build>
     <properties>
+        <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>utf-8</project.reporting.outputEncoding>
         <plugin.id>klab.component.geospatial</plugin.id>
         <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
         <plugin.version>${project.version}</plugin.version>
@@ -88,11 +95,13 @@
 
         <klab.version>1.0.0-SNAPSHOT</klab.version>
         <geotools.version>34.0</geotools.version>
+        <jts.version>1.20.0</jts.version>
+        <h2gis.version>1.5.0</h2gis.version>
         <hortonmachine.version>0.11.1-SNAPSHOT</hortonmachine.version>
         <junit-version>5.13.4</junit-version>
         <mockito-version>5.18.0</mockito-version>
         <maven.surefire.version>3.5.3</maven.surefire.version>
-        <!--        <jackson.version>2.17.1</jackson.version>-->
+        <jackson-version>2.19.0</jackson-version>
         <imageio-ext.version>2.0.1</imageio-ext.version>
     </properties>
 
@@ -170,10 +179,12 @@
             <version>3.14.5</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.javadev/underscore -->
+        <!-- Source: https://mvnrepository.com/artifact/com.github.javadev/underscore -->
         <dependency>
             <groupId>com.github.javadev</groupId>
             <artifactId>underscore</artifactId>
-            <version>1.68</version>
+            <version>1.120</version>
+            <scope>compile</scope>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/commons-jxpath/commons-jxpath -->
         <dependency>
