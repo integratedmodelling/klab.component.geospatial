@@ -19,7 +19,7 @@ package org.integratedmodelling.geospatial.utils;
 //import org.integratedmodelling.klab.api.scope.ContextScope;
 //import org.integratedmodelling.klab.api.view.modeler.visualization.Colormap;
 //import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
-//import org.opengis.style.ContrastMethod;
+//import org.geotools.api.style.ContrastMethod;
 //import org.springframework.core.io.Resource;
 //import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 //import org.springframework.core.io.support.ResourcePatternResolver;

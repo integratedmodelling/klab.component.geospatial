@@ -10,33 +10,59 @@
     </parent>
     <artifactId>klab.component.geospatial</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <repositories>
-        <repository>
-            <id>osgeo-alt</id>
-            <url>https://repo.osgeo.org/repository/release/</url>
-        </repository>
-        <!-- https://central.sonatype.org/publish/publish-portal-snapshots/#consuming-snapshot-releases-for-your-project -->
-        <repository>
-            <name>Central Portal Snapshots</name>
-            <id>central-portal-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <!-- Old one -->
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Maven Central snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>utf-8</project.reporting.outputEncoding>
+        <plugin.id>klab.component.geospatial</plugin.id>
+        <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
+        <plugin.version>${project.version}</plugin.version>
+        <plugin.provider>klab</plugin.provider>
+        <plugin.dependencies/>
+
+        <klab.version>1.0.0-SNAPSHOT</klab.version>
+        <geotools.version>34.0</geotools.version>
+        <jts.version>1.20.0</jts.version>
+        <h2gis.version>1.5.0</h2gis.version>
+        <hortonmachine.version>0.11.1-SNAPSHOT</hortonmachine.version>
+        <junit-version>5.13.4</junit-version>
+        <mockito-version>5.18.0</mockito-version>
+        <maven.surefire.version>3.5.3</maven.surefire.version>
+        <jackson-version>2.19.0</jackson-version>
+        <imageio-ext.version>2.0.1</imageio-ext.version>
+    </properties>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License (AGPL) version 3.0</name>
+            <url>http://www.gnu.org/licenses/agpl-3.0.en.html</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Ferdinando Villa</name>
+            <email>ferdinando.villa@bc3research.org</email>
+            <organization>Basque Centre for Climate Change (BC3); IKERBASQUE, Basque foundation for science
+            </organization>
+            <organizationUrl>https://www.bc3research.org</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:http://github.com/integratedmodelling/klab.component.raster</connection>
+        <developerConnection>scm:git:https://github.com/integratedmodelling/klab.component.raster</developerConnection>
+        <url>https://github.com/integratedmodelling/klab.component.raster.git</url>
+    </scm>
+
+    <organization>
+        <name>integratedmodelling.org</name>
+        <url>http://www.integratedmodelling.org</url>
+    </organization>
+
     <build>
         <plugins>
             <plugin>
@@ -57,7 +83,12 @@
                             <componentUsageRights>*</componentUsageRights>
                             <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
                             <componentVersion>1.0-SNAPSHOT</componentVersion>
-                            <excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>
+                            <!--<excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>-->
+                            <!--<excludedDependencies>xerces:xercesImpl,xml-apis:xml-apis,xpp3:xpp3</excludedDependencies>-->
+                            <hostRuntimeArtifacts>
+                                org.integratedmodelling:klab.service.runtime.server:1.0.0-SNAPSHOT,
+                                org.integratedmodelling:klab.service.resources.server:1.0.0-SNAPSHOT
+                            </hostRuntimeArtifacts>
                         </configuration>
                     </execution>
                 </executions>
@@ -76,54 +107,6 @@
             </plugin>
         </plugins>
     </build>
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <plugin.id>klab.component.geospatial</plugin.id>
-        <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
-        <plugin.version>${project.version}</plugin.version>
-        <plugin.provider>klab</plugin.provider>
-        <plugin.dependencies/>
-
-        <klab.version>1.0.0-SNAPSHOT</klab.version>
-        <geotools.version>28.0</geotools.version>
-        <hortonmachine.version>0.10.11</hortonmachine.version>
-        <junit-version>5.13.4</junit-version>
-        <mockito-version>5.18.0</mockito-version>
-        <maven.surefire.version>3.5.3</maven.surefire.version>
-        <jackson.version>2.17.1</jackson.version>
-        <imageio-ext.version>1.4.7</imageio-ext.version>
-    </properties>
-
-
-    <licenses>
-        <license>
-            <name>GNU Affero General Public License (AGPL) version 3.0</name>
-            <url>http://www.gnu.org/licenses/agpl-3.0.en.html</url>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Ferdinando Villa</name>
-            <email>ferdinando.villa@bc3research.org</email>
-            <organization>Basque Centre for Climate Change (BC3); IKERBASQUE, Basque foundation for science
-            </organization>
-            <organizationUrl>http://www.bc3research.org</organizationUrl>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:http://github.com/integratedmodelling/klab.component.raster</connection>
-        <developerConnection>scm:git:https://github.com/integratedmodelling/klab.component.raster</developerConnection>
-        <url>https://github.com/integratedmodelling/klab.component.raster.git</url>
-    </scm>
-
-    <organization>
-        <name>integratedmodelling.org</name>
-        <url>http://www.integratedmodelling.org</url>
-    </organization>
 
     <distributionManagement>
         <snapshotRepository>
@@ -136,6 +119,24 @@
         </repository>
     </distributionManagement>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-bom</artifactId>
+                <version>${geotools.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-platform-dependencies</artifactId>
+                <version>${geotools.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.integratedmodelling</groupId>
@@ -146,110 +147,46 @@
             <groupId>org.hortonmachine</groupId>
             <artifactId>hm-gears</artifactId>
             <version>${hortonmachine.version}</version>
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>javax.measure</groupId>-->
-<!--                    <artifactId>jsr-275</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.mongodb</groupId>-->
-<!--                    <artifactId>mongo-java-driver</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.locationtech.jts</groupId>-->
-<!--                    <artifactId>jts-core</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.bedatadriven</groupId>-->
-<!--                    <artifactId>jackson-datatype-jts</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
         </dependency>
-
-<!--        <dependency>-->
-<!--            <groupId>com.bedatadriven</groupId>-->
-<!--            <artifactId>jackson-datatype-jts</artifactId>-->
-<!--            <version>2.4</version>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                    <artifactId>jackson-databind</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                    <artifactId>jackson-core</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                    <artifactId>jackson-annotations</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
-
-<!--        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>-->
-
         <dependency>
             <groupId>com.konghq</groupId>
             <artifactId>unirest-java</artifactId>
             <version>3.14.5</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.javadev/underscore -->
+        <!-- Source: https://mvnrepository.com/artifact/com.github.javadev/underscore -->
         <dependency>
             <groupId>com.github.javadev</groupId>
             <artifactId>underscore</artifactId>
-            <version>1.68</version>
+            <version>1.120</version>
+            <scope>compile</scope>
         </dependency>
-
+        <!-- Source: https://mvnrepository.com/artifact/commons-jxpath/commons-jxpath -->
+        <dependency>
+            <groupId>commons-jxpath</groupId>
+            <artifactId>commons-jxpath</artifactId>
+            <version>1.3</version>
+        </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-coverage</artifactId>
-            <version>${geotools.version}</version>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-geojson-core</artifactId>
-            <version>${geotools.version}</version>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-shapefile</artifactId>
-            <version>${geotools.version}</version>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-swing</artifactId>
-            <version>${geotools.version}</version>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-transform</artifactId>
-            <version>${geotools.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -314,4 +251,32 @@
             <version>${imageio-ext.version}</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>osgeo-alt</id>
+            <url>https://repo.osgeo.org/repository/release/</url>
+        </repository>
+        <!-- https://central.sonatype.org/publish/publish-portal-snapshots/#consuming-snapshot-releases-for-your-project -->
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <!-- Old one -->
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Maven Central snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
 </project>

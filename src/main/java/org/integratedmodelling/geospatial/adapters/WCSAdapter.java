@@ -4,6 +4,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
+import org.geotools.api.coverage.grid.GridCoverage;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
@@ -40,7 +41,6 @@ import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.configuration.ServiceConfiguration;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
-import org.opengis.coverage.grid.GridCoverage;
 
 /**
  * WCS layer adapter. Keeps a size-bound cache of downloaded TIFFs to optimize transfers. NOTE: the

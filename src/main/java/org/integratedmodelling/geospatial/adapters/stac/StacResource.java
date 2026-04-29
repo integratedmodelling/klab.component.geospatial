@@ -1,6 +1,5 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
-import java.io.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,8 +16,6 @@ import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
 import org.hortonmachine.gears.utils.RegionMap;
-import org.hortonmachine.gears.utils.geometry.GeometryUtilities;
-import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
@@ -307,14 +304,14 @@ public class StacResource {
       var str = space.toString();
 
       var envelope = space.getEnvelope();
-      var env =
-          EnvelopeImpl.create(
-              envelope.getMinX(),
-              envelope.getMaxX(),
-              envelope.getMinY(),
-              envelope.getMaxY(),
-              space.getProjection());
-      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
+//      var env =
+//          EnvelopeImpl.create(
+//              envelope.getMinX(),
+//              envelope.getMaxX(),
+//              envelope.getMinY(),
+//              envelope.getMaxY(),
+//              space.getProjection());
+//      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
       // GeometryRepository.INSTANCE.geometry(poly);
       // collection.setGeometryFilter(poly);
       double[] bbox = {

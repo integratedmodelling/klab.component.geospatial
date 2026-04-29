@@ -1,15 +1,13 @@
 package org.integratedmodelling.geospatial.utils;
 
-import java.awt.*;
 import java.awt.image.*;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import javax.media.jai.*;
-import javax.media.jai.iterator.RandomIter;
-import javax.media.jai.iterator.RandomIterFactory;
+
+import org.eclipse.imagen.RasterFactory;
+import org.eclipse.imagen.iterator.RandomIterFactory;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
@@ -28,10 +26,6 @@ import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.*;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
-import org.opengis.metadata.Identifier;
-import org.opengis.metadata.citation.Citation;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Geotools utilities. All scanners are assumed to scan according to {@link
@@ -70,7 +64,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -108,7 +102,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -146,7 +140,7 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    Envelope2D writeEnvelope = new Envelope2D(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -268,7 +262,7 @@ public class Geotools {
    */
   public static GridCoverage2D makeCoverage(String name, WritableRaster raster, Geometry geometry) {
     var scale = GeometryRepository.INSTANCE.scale(geometry);
-    ReferencedEnvelope jtsEnvelope = checkEnvelope(scale.getSpace().getEnvelope());
+    var jtsEnvelope = checkEnvelope(scale.getSpace().getEnvelope());
     return rasterFactory.create(name, raster, jtsEnvelope);
   }
 
@@ -480,7 +474,7 @@ public class Geotools {
   public static ReferencedEnvelope checkEnvelope(Envelope envelope) {
     if (envelope instanceof EnvelopeImpl envImpl) {
       var env = envImpl.getJTSEnvelope();
-      CoordinateReferenceSystem crs = env.getCoordinateReferenceSystem();
+      var crs = env.getCoordinateReferenceSystem();
       crs = checkCrs(crs);
       env = new ReferencedEnvelope(env, crs);
       return env;
@@ -492,12 +486,12 @@ public class Geotools {
 
   public static CoordinateReferenceSystem checkCrs(CoordinateReferenceSystem crs) {
     // looking for EPSG code
-    final Set<? extends Identifier> identifiers = crs.getIdentifiers();
-    final Iterator<? extends Identifier> it = identifiers.iterator();
+    final var identifiers = crs.getIdentifiers();
+    final var it = identifiers.iterator();
     String code = "";
     while (it.hasNext()) {
-      final Identifier identifier = it.next();
-      final Citation cite = identifier.getAuthority();
+      final var identifier = it.next();
+      final var cite = identifier.getAuthority();
       if (Citations.identifierMatches(cite, "EPSG")) {
         code = identifier.getCode();
         break;
@@ -523,7 +517,7 @@ public class Geotools {
           code = "EPSG:" + epsg;
           crs = CRS.decode(code, true);
         }
-      } catch (FactoryException e) {
+      } catch (Exception e) {
         e.printStackTrace();
       }
     }
@@ -564,7 +558,7 @@ public class Geotools {
     long ndata = 0;
 
     RenderedImage image = layer.getRenderedImage();
-    RandomIter itera = RandomIterFactory.create(image, null);
+    var iterator = RandomIterFactory.create(image, null);
     var mapper =
         scanner
             .shard()
@@ -575,7 +569,7 @@ public class Geotools {
     for (int i = 0; i < grid.size(); i++) {
 
       long[] xy = mapper.offsets(i);
-      Double value = itera.getSampleDouble((int) xy[0], (int) xy[1], 0);
+      Double value = iterator.getSampleDouble((int) xy[0], (int) xy[1], 0);
       //      ILocator spl = locator.at(ISpace.class, xy[0], xy[1]);
       if (transformation != null) {
         value = transformation.apply(value);
@@ -776,7 +770,7 @@ public class Geotools {
   //        tileHeight = height;
   //      }
   //
-  //      Envelope2D envelope = new Envelope2D(crs, 0, 0, width, height);
+  //      ReferencedEnvelope envelope = new ReferencedEnvelope(crs, 0, 0, width, height);
   //      SampleModel sampleModel =
   //          new ComponentSampleModel(
   //              DataBuffer.TYPE_FLOAT, tileWidth, tileHeight, 1, tileWidth, new int[] {0});
@@ -1066,7 +1060,7 @@ public class Geotools {
   //      return;
   //    }
   //
-  //    ParameterBlockJAI pb = new ParameterBlockJAI("Constant");
+  //    ParameterBlockImageN pb = new ParameterBlockImageN("Constant");
   //    pb.setParameter("width", (float) IMAGE_WIDTH);
   //    pb.setParameter("height", (float) IMAGE_HEIGHT);
   //    pb.setParameter("bandValues", new Double[] {0.0d});
@@ -1077,9 +1071,9 @@ public class Geotools {
   //    layout.setTileWidth(tileWidth);
   //    layout.setTileHeight(tileWidth);
   //
-  //    RenderingHints hints = new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout);
+  //    RenderingHints hints = new RenderingHints(ImageN.KEY_IMAGE_LAYOUT, layout);
   //
-  //    RenderedOp image = JAI.create("Constant", pb, hints);
+  //    RenderedOp image = ImageN.create("Constant", pb, hints);
   //
   //    GeoTiffWriter writer = new GeoTiffWriter(file, null);
   //    GridCoverageFactory factory = new GridCoverageFactory();
