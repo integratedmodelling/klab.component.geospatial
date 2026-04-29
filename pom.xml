@@ -10,33 +10,59 @@
     </parent>
     <artifactId>klab.component.geospatial</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <repositories>
-        <repository>
-            <id>osgeo-alt</id>
-            <url>https://repo.osgeo.org/repository/release/</url>
-        </repository>
-        <!-- https://central.sonatype.org/publish/publish-portal-snapshots/#consuming-snapshot-releases-for-your-project -->
-        <repository>
-            <name>Central Portal Snapshots</name>
-            <id>central-portal-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <!-- Old one -->
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Maven Central snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>utf-8</project.reporting.outputEncoding>
+        <plugin.id>klab.component.geospatial</plugin.id>
+        <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
+        <plugin.version>${project.version}</plugin.version>
+        <plugin.provider>klab</plugin.provider>
+        <plugin.dependencies/>
+
+        <klab.version>1.0.0-SNAPSHOT</klab.version>
+        <geotools.version>34.0</geotools.version>
+        <jts.version>1.20.0</jts.version>
+        <h2gis.version>1.5.0</h2gis.version>
+        <hortonmachine.version>0.11.1-SNAPSHOT</hortonmachine.version>
+        <junit-version>5.13.4</junit-version>
+        <mockito-version>5.18.0</mockito-version>
+        <maven.surefire.version>3.5.3</maven.surefire.version>
+        <jackson-version>2.19.0</jackson-version>
+        <imageio-ext.version>2.0.1</imageio-ext.version>
+    </properties>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License (AGPL) version 3.0</name>
+            <url>http://www.gnu.org/licenses/agpl-3.0.en.html</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Ferdinando Villa</name>
+            <email>ferdinando.villa@bc3research.org</email>
+            <organization>Basque Centre for Climate Change (BC3); IKERBASQUE, Basque foundation for science
+            </organization>
+            <organizationUrl>https://www.bc3research.org</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:http://github.com/integratedmodelling/klab.component.raster</connection>
+        <developerConnection>scm:git:https://github.com/integratedmodelling/klab.component.raster</developerConnection>
+        <url>https://github.com/integratedmodelling/klab.component.raster.git</url>
+    </scm>
+
+    <organization>
+        <name>integratedmodelling.org</name>
+        <url>http://www.integratedmodelling.org</url>
+    </organization>
+
     <build>
         <plugins>
             <plugin>
@@ -81,58 +107,6 @@
             </plugin>
         </plugins>
     </build>
-    <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>utf-8</project.reporting.outputEncoding>
-        <plugin.id>klab.component.geospatial</plugin.id>
-        <plugin.class>org.integratedmodelling.geospatial.GeospatialPlugin</plugin.class>
-        <plugin.version>${project.version}</plugin.version>
-        <plugin.provider>klab</plugin.provider>
-        <plugin.dependencies/>
-
-        <klab.version>1.0.0-SNAPSHOT</klab.version>
-        <geotools.version>34.0</geotools.version>
-        <jts.version>1.20.0</jts.version>
-        <h2gis.version>1.5.0</h2gis.version>
-        <hortonmachine.version>0.11.1-SNAPSHOT</hortonmachine.version>
-        <junit-version>5.13.4</junit-version>
-        <mockito-version>5.18.0</mockito-version>
-        <maven.surefire.version>3.5.3</maven.surefire.version>
-        <jackson-version>2.19.0</jackson-version>
-        <imageio-ext.version>2.0.1</imageio-ext.version>
-    </properties>
-
-
-    <licenses>
-        <license>
-            <name>GNU Affero General Public License (AGPL) version 3.0</name>
-            <url>http://www.gnu.org/licenses/agpl-3.0.en.html</url>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Ferdinando Villa</name>
-            <email>ferdinando.villa@bc3research.org</email>
-            <organization>Basque Centre for Climate Change (BC3); IKERBASQUE, Basque foundation for science
-            </organization>
-            <organizationUrl>http://www.bc3research.org</organizationUrl>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:http://github.com/integratedmodelling/klab.component.raster</connection>
-        <developerConnection>scm:git:https://github.com/integratedmodelling/klab.component.raster</developerConnection>
-        <url>https://github.com/integratedmodelling/klab.component.raster.git</url>
-    </scm>
-
-    <organization>
-        <name>integratedmodelling.org</name>
-        <url>http://www.integratedmodelling.org</url>
-    </organization>
 
     <distributionManagement>
         <snapshotRepository>
@@ -144,6 +118,7 @@
             <url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -276,4 +251,32 @@
             <version>${imageio-ext.version}</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>osgeo-alt</id>
+            <url>https://repo.osgeo.org/repository/release/</url>
+        </repository>
+        <!-- https://central.sonatype.org/publish/publish-portal-snapshots/#consuming-snapshot-releases-for-your-project -->
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <!-- Old one -->
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Maven Central snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
 </project>
