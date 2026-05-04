@@ -1,6 +1,9 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import kong.unirest.HttpResponse;
@@ -9,8 +12,11 @@ import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.processing.Operations;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.stac.HMStacAsset;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
@@ -27,6 +33,7 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
 import org.locationtech.jts.geom.Geometry;
+import java.util.function.Predicate;
 
 /**
  * This class represents a k.LAB STAC resource. It heavily uses the HortonMachine implementation.
@@ -281,7 +288,7 @@ public class StacResource {
       return true;
     }
 
-    public GridCoverage2D getCoverage(Space space, Time time, String assetId, Scope scope)
+    public GridCoverage2D getCoverage(Space space, Time time, String assetId, Integer band, Scope scope)
         throws Exception {
       LogProgressMonitor lpm = new LogProgressMonitor();
       var manager = new HMStacManager(catalog.getUrl(), lpm);
@@ -301,8 +308,6 @@ public class StacResource {
             "Not in a raster grid context during STAC coverage retrieval");
       }
 
-      var str = space.toString();
-
       var envelope = space.getEnvelope();
 //      var env =
 //          EnvelopeImpl.create(
@@ -314,14 +319,16 @@ public class StacResource {
 //      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
       // GeometryRepository.INSTANCE.geometry(poly);
       // collection.setGeometryFilter(poly);
+
       double[] bbox = {
         envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()
       };
       collection.setBboxFilter(bbox);
       var start = time.getStart();
       var end = time.getEnd();
-      collection.setTimestampFilter(
-          new Date(start.getMilliseconds()), new Date(end.getMilliseconds()));
+
+//      collection.setTimestampFilter(
+//          new Date(start.getMilliseconds()), new Date(end.getMilliseconds())); --> STAC 1.1.x doesn't support temporal filtering so do that later
 
       // TODO for now, we do not manage the semantics for the MergeMode
       HMRaster.MergeMode mergeMode = HMRaster.MergeMode.SUBSTITUTE;
@@ -352,21 +359,66 @@ public class StacResource {
           RegionMap.fromEnvelopeAndGrid(
               regionEnvelope, (int) grid.getXCells(), (int) grid.getYCells());
 
-      Set<Integer> EPSGsAtItems =
-          items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
-      if (EPSGsAtItems.size() > 1) {
-        scope.warn(
-            "Multiple EPSGs found on the items "
-                + EPSGsAtItems
-                + ". The reprojection could affect the data.");
+      var p = new Predicate<HMStacAsset>() {
+
+        @Override
+        public boolean test(HMStacAsset asset) { // Assuming for now that "eo:bands" would be there, adding support for customised predicates
+          var bands = asset.getAssetNode().get("eo:bands");
+          if (bands != null && bands.isArray()) {
+            var bandsArray = (ArrayNode) bands;
+            for (var bandNode : bandsArray) {
+              String bandName = bandNode.get("name").asText();
+              if (bandName.equals(assetId)) { // under eo:band it's one of the band
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+      };
+
+
+      // Filter here based on time, since in some STAC collections they don't yet support temporal filtering :( like ECDC
+      items = items.stream().filter(item -> {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        long itemStart = LocalDateTime
+                .parse(item.getStartTimestamp(), formatter)
+                .atZone(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli();
+
+        long itemEnd = LocalDateTime
+                .parse(item.getEndTimestamp(), formatter)
+                .atZone(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli();
+
+          return start.getMilliseconds() >= itemStart && end.getMilliseconds() <= itemEnd;
+      }).collect(Collectors.toList());
+
+      Set<Integer> EPSGAtAssets =
+              items.stream()
+                      .flatMap(item -> item.getAssets().stream())
+                      .filter(p)
+                      .map(HMStacAsset::getEpsg)
+                      .collect(Collectors.toUnmodifiableSet());
+
+      if (EPSGAtAssets.size() > 1) {
+        scope.warn("Multiple EPSGs found on the assets in items " + EPSGAtAssets.toString() + ". The transformation process could affect the data.");
       }
+
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
       HMRaster outRaster =
           collection.readRasterBandOnRegion(
-              regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
-      return outRaster.buildCoverage();
+              regionTransformed, p, items, allowTransform, mergeMode, lpm);
+
+      var coverage = outRaster.buildCoverage();
+      if (band != null) {
+        coverage = (GridCoverage2D) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
+      }
+      return coverage;
     }
 
     private static void sortByDate(List<HMStacItem> items, Scope scope) {
@@ -377,9 +429,9 @@ public class StacResource {
       items.sort(Comparator.comparing(HMStacItem::getTimestamp));
       scope.debug(
           "Ordered STAC items. First: ["
-              + items.get(0).getTimestamp()
+              + items.getFirst().getTimestamp()
               + "]; Last ["
-              + items.get(items.size() - 1).getTimestamp()
+              + items.getLast().getTimestamp()
               + "]");
     }
   }

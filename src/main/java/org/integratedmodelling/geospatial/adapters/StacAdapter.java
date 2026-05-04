@@ -78,12 +78,13 @@ public class StacAdapter {
     var collection =
         new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
+    var band = resource.getParameters().get("band", Integer.class);
     var scale = Scale.create(geometry);
     var time = scale.getTime();
     var space = scale.getSpace();
     GridCoverage2D coverage = null;
     try {
-      coverage = collection.getCoverage(space, time, assetId, scope);
+      coverage = collection.getCoverage(space, time, assetId, band, scope);
       //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       scope.error(
