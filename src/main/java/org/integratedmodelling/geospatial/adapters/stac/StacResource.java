@@ -396,6 +396,10 @@ public class StacResource {
           return start.getMilliseconds() >= itemStart && end.getMilliseconds() <= itemEnd;
       }).collect(Collectors.toList());
 
+      if (items.isEmpty()){
+        throw new Exception("Found 0 items in the current spatio temporal context");
+      }
+
       Set<Integer> EPSGAtAssets =
               items.stream()
                       .flatMap(item -> item.getAssets().stream())

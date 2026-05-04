@@ -87,6 +87,7 @@ public class StacAdapter {
       coverage = collection.getCoverage(space, time, assetId, band, scope);
       //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
+      e.printStackTrace();
       scope.error(
           e instanceof KlabException ? e.getMessage() : "Cannot encode STAC resource",
           Notification.Outcome.Failure);
