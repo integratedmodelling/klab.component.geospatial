@@ -373,7 +373,7 @@ public class StacResource {
               }
             }
           }
-          return false;
+          return asset.getId().equals(assetId); // or else, if asset ID is just equal to Id, keeping it in sync with 0.11
         }
       };
 
@@ -400,16 +400,16 @@ public class StacResource {
         throw new Exception("Found 0 items in the current spatio temporal context");
       }
 
-      Set<Integer> EPSGAtAssets =
-              items.stream()
-                      .flatMap(item -> item.getAssets().stream())
-                      .filter(p)
-                      .map(HMStacAsset::getEpsg)
-                      .collect(Collectors.toUnmodifiableSet());
-
-      if (EPSGAtAssets.size() > 1) {
-        scope.warn("Multiple EPSGs found on the assets in items " + EPSGAtAssets.toString() + ". The transformation process could affect the data.");
-      }
+//      Set<Integer> EPSGAtAssets =
+//              items.stream()
+//                      .flatMap(item -> item.getAssets().stream())
+//                      .filter(p)
+//                      .map(HMStacAsset::getEpsg)
+//                      .collect(Collectors.toUnmodifiableSet());
+//
+//      if (EPSGAtAssets.size() > 1) {
+//        scope.warn("Multiple EPSGs found on the assets in items " + EPSGAtAssets.toString() + ". The transformation process could affect the data.");
+//      }
 
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
