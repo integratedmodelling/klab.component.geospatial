@@ -379,25 +379,12 @@ public class StacResource {
 
 
       // Filter here based on time, since in some STAC collections they don't yet support temporal filtering :( like ECDC
-      items = items.stream().filter(item -> {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        long itemStart = LocalDateTime
-                .parse(item.getStartTimestamp(), formatter)
-                .atZone(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli();
-
-        long itemEnd = LocalDateTime
-                .parse(item.getEndTimestamp(), formatter)
-                .atZone(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli();
-
-          return start.getMilliseconds() >= itemStart && end.getMilliseconds() <= itemEnd;
-      }).collect(Collectors.toList());
+      items = items.stream()
+              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds()))
+              .collect(Collectors.toList());
 
       if (items.isEmpty()){
-        throw new Exception("Found 0 items in the current spatio temporal context");
+        throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
       }
 
 //      Set<Integer> EPSGAtAssets =
@@ -423,6 +410,35 @@ public class StacResource {
         coverage = (GridCoverage2D) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
       }
       return coverage;
+    }
+
+
+    // checks if a STAC Item intersects with the Temporal Bounds
+    // as necessitated by the context
+
+    private boolean isWithinRange(HMStacItem item, long startMillis, long endMillis) {
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      String startTimestamp = item.getStartTimestamp();
+      String endTimestamp = item.getEndTimestamp();
+
+      if (startTimestamp == null || endTimestamp == null) {
+        return true; // Assume the time part is ok
+      }
+
+      try {
+
+        long itemStart = LocalDateTime.parse(item.getStartTimestamp(), formatter).atZone(ZoneOffset.UTC).toInstant()
+                .toEpochMilli();
+
+        long itemEnd = LocalDateTime.parse(item.getEndTimestamp(), formatter).atZone(ZoneOffset.UTC).toInstant()
+                .toEpochMilli();
+
+        return startMillis >= itemStart && endMillis <= itemEnd;
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+      }
     }
 
     private static void sortByDate(List<HMStacItem> items, Scope scope) {
