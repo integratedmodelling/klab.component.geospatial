@@ -6,6 +6,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -387,17 +389,28 @@ public class StacResource {
         throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
       }
 
-//      Set<Integer> EPSGAtAssets =
-//              items.stream()
-//                      .flatMap(item -> item.getAssets().stream())
-//                      .filter(p)
-//                      .map(HMStacAsset::getEpsg)
-//                      .collect(Collectors.toUnmodifiableSet());
-//
-//      if (EPSGAtAssets.size() > 1) {
-//        scope.warn("Multiple EPSGs found on the assets in items " + EPSGAtAssets.toString() + ". The transformation process could affect the data.");
-//      }
-
+      // Way to handle to get S3 assets behind secret and user token
+      //TODO: Propose and find a better and general way to do this
+      for (HMStacItem item:items){
+          for (int i=0; i < item.getAssets().size(); i++) {
+            var jNode = item.getAssets().get(i).getAssetNode();
+            if (jNode instanceof ObjectNode objectNode) {
+              if (objectNode.get("href") != null && objectNode.get("href").toString().startsWith("s3://")){
+                  String existingHref = objectNode.get("href").toString();
+                    if (objectNode.get("href").toString().contains("waw4-1")) {
+                      existingHref = "https://s3.waw4-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
+                    } else if (objectNode.get("href").toString().contains("waw3-1")) {
+                      existingHref = "https://s3.waw3-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
+                    } else {
+                      scope.debug("Found existingHref: " + existingHref + " using S3 protocol with unknown static url");
+                    }
+                objectNode.put("href", existingHref);
+                item.getAssets().set(i,new HMStacAsset(item.getAssets().get(i).getId(),
+                        objectNode));
+              }
+            }
+          }
+      }
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
