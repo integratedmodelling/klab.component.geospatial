@@ -341,7 +341,7 @@ public class StacResource {
       }
       scope.debug("Found " + items.size() + " STAC items.");
       if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
-        sortByDate(items, scope);
+  //      sortByDate(items, scope);
       }
 
       RegionMap region =
