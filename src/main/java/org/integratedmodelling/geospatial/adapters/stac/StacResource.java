@@ -382,7 +382,7 @@ public class StacResource {
 
       // Filter here based on time, since in some STAC collections they don't yet support temporal filtering :( like ECDC
       items = items.stream()
-              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds()))
+              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds(), scope))
               .collect(Collectors.toList());
 
       if (items.isEmpty()){
@@ -429,26 +429,24 @@ public class StacResource {
     // checks if a STAC Item intersects with the Temporal Bounds
     // as necessitated by the context
 
-    private boolean isWithinRange(HMStacItem item, long startMillis, long endMillis) {
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private boolean isWithinRange(HMStacItem item, long startMillis, long endMillis, Scope scope) {
+
       String startTimestamp = item.getStartTimestamp();
       String endTimestamp = item.getEndTimestamp();
 
       if (startTimestamp == null || endTimestamp == null) {
-        return true; // Assume the time part is ok
+        return true;
       }
 
       try {
+        long itemStart = Instant.parse(startTimestamp).toEpochMilli();
+        long itemEnd = Instant.parse(endTimestamp).toEpochMilli();
 
-        long itemStart = LocalDateTime.parse(item.getStartTimestamp(), formatter).atZone(ZoneOffset.UTC).toInstant()
-                .toEpochMilli();
-
-        long itemEnd = LocalDateTime.parse(item.getEndTimestamp(), formatter).atZone(ZoneOffset.UTC).toInstant()
-                .toEpochMilli();
-
-        return startMillis >= itemStart && endMillis <= itemEnd;
+        // proper overlap check
+        return itemEnd >= startMillis && itemStart <= endMillis;
 
       } catch (Exception e) {
+        scope.error("Invalid timestamp in STAC item:");
         e.printStackTrace();
         return false;
       }
