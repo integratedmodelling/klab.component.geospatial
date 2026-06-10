@@ -381,9 +381,9 @@ public class StacResource {
 
 
       // Filter here based on time, since in some STAC collections they don't yet support temporal filtering :( like ECDC
-      items = items.stream()
-              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds(), scope))
-              .collect(Collectors.toList());
+//      items = items.stream()
+//              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds(), scope))
+//              .collect(Collectors.toList());
 
       if (items.isEmpty()){
         throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
