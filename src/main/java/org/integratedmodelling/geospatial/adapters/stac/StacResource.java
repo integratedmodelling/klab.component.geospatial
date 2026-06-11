@@ -13,6 +13,7 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.processing.Operations;
 import org.geotools.data.geojson.GeoJSONReader;
@@ -24,6 +25,8 @@ import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
 import org.hortonmachine.gears.utils.RegionMap;
+import org.hortonmachine.gears.utils.crs.HMCrsRegistry;
+import org.hortonmachine.gears.utils.crs.HMCrsTransformer;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
@@ -311,16 +314,6 @@ public class StacResource {
       }
 
       var envelope = space.getEnvelope();
-//      var env =
-//          EnvelopeImpl.create(
-//              envelope.getMinX(),
-//              envelope.getMaxX(),
-//              envelope.getMinY(),
-//              envelope.getMaxY(),
-//              space.getProjection());
-//      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
-      // GeometryRepository.INSTANCE.geometry(poly);
-      // collection.setGeometryFilter(poly);
 
       double[] bbox = {
         envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()
@@ -389,17 +382,20 @@ public class StacResource {
         throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
       }
 
+      scope.debug("Found " + items.size() + "items over Spatio Temporal Context from STAC");
+
       // Way to handle to get S3 assets behind secret and user token
       //TODO: Propose and find a better and general way to do this
+
       for (HMStacItem item:items){
           for (int i=0; i < item.getAssets().size(); i++) {
             var jNode = item.getAssets().get(i).getAssetNode();
             if (jNode instanceof ObjectNode objectNode) {
-              if (objectNode.get("href") != null && objectNode.get("href").toString().startsWith("s3://")){
-                  String existingHref = objectNode.get("href").toString();
-                    if (objectNode.get("href").toString().contains("waw4-1")) {
+              String existingHref = item.getAssets().get(i).getHandler().getAssetUrl();
+              if (existingHref.startsWith("s3://")){
+                    if (existingHref.contains("waw4-1")) {
                       existingHref = "https://s3.waw4-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
-                    } else if (objectNode.get("href").toString().contains("waw3-1")) {
+                    } else if (existingHref.contains("waw3-1")) {
                       existingHref = "https://s3.waw3-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
                     } else {
                       scope.debug("Found existingHref: " + existingHref + " using S3 protocol with unknown static url");
@@ -408,9 +404,13 @@ public class StacResource {
                 item.getAssets().set(i,new HMStacAsset(item.getAssets().get(i).getId(),
                         objectNode));
               }
+            } else {
+              scope.debug("Asset Node is not of type ObjectNode");
             }
           }
       }
+
+
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
@@ -418,8 +418,20 @@ public class StacResource {
           collection.readRasterBandOnRegion(
               regionTransformed, p, items, allowTransform, mergeMode, lpm);
 
-      var coverage = outRaster.buildCoverage();
-      if (band != null) {
+      CoordinateReferenceSystem targetCRS = HMCrsRegistry.INSTANCE.getCrs("4326");
+      if (!HMCrsRegistry.crsEquals(outRaster.getCrs(),targetCRS)) {
+        var transformer = new HMCrsTransformer(outRaster.getCrs(), targetCRS);
+        transformer.setAcceptLenientDatumShift(true);
+        outRaster = transformer.transform(outRaster);
+      }
+
+
+      HMRaster paddedRaster = new HMRaster.HMRasterWritableBuilder().setName("padded").setRegion(region)
+              .setCrs(targetCRS).setNoValue(outRaster.getNovalue()).build();
+      paddedRaster.mapRaster(null, outRaster, null);
+      GridCoverage2D coverage = paddedRaster.buildCoverage();
+
+      if (band != null) { // Which means theat it's a Multi Band COG
         coverage = (GridCoverage2D) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
       }
       return coverage;
