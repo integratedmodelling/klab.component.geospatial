@@ -333,11 +333,9 @@ public class StacResource {
         throw new KlabIllegalStateException("No STAC items found for this context.");
       }
       scope.debug("Found " + items.size() + " STAC items.");
-      if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
-  //      sortByDate(items, scope);
-      }
+      sortByDate(items, scope);
 
-      RegionMap region =
+        RegionMap region =
           RegionMap.fromBoundsAndGrid(
               space.getEnvelope().getMinX(),
               space.getEnvelope().getMaxX(),
@@ -386,6 +384,8 @@ public class StacResource {
 
       // Way to handle to get S3 assets behind secret and user token
       //TODO: Propose and find a better and general way to do this
+
+      System.out.println("Checking if the Asset are S3 Assets from VITO and updating the STAC Href");
 
       for (HMStacItem item:items){
           for (int i=0; i < item.getAssets().size(); i++) {

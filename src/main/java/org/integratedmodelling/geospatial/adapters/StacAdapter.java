@@ -75,6 +75,9 @@ public class StacAdapter {
       Geometry geometry,
       Observable observable,
       ContextScope scope) {
+
+    System.setProperty("org.geotools.referencing.forceXY", "true");
+
     var collection =
         new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
