@@ -13,6 +13,7 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.processing.Operations;
@@ -293,8 +294,9 @@ public class StacResource {
       return true;
     }
 
-    public GridCoverage2D getCoverage(Space space, Time time, String assetId, Integer band, Scope scope)
+    public GridCoverage getCoverage(Space space, Time time, String assetId, Integer band, Scope scope)
         throws Exception {
+
       LogProgressMonitor lpm = new LogProgressMonitor();
       var manager = new HMStacManager(catalog.getUrl(), lpm);
       manager.open();
@@ -380,7 +382,7 @@ public class StacResource {
         throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
       }
 
-      scope.debug("Found " + items.size() + "items over Spatio Temporal Context from STAC");
+      scope.debug("Found " + items.size() + " items over Spatio Temporal Context from STAC");
 
       // Way to handle to get S3 assets behind secret and user token
       //TODO: Propose and find a better and general way to do this
@@ -410,8 +412,6 @@ public class StacResource {
           }
       }
 
-
-
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
       HMRaster outRaster =
@@ -425,18 +425,16 @@ public class StacResource {
         outRaster = transformer.transform(outRaster);
       }
 
-
       HMRaster paddedRaster = new HMRaster.HMRasterWritableBuilder().setName("padded").setRegion(region)
               .setCrs(targetCRS).setNoValue(outRaster.getNovalue()).build();
       paddedRaster.mapRaster(null, outRaster, null);
-      GridCoverage2D coverage = paddedRaster.buildCoverage();
+      GridCoverage coverage = outRaster.buildCoverage();
 
       if (band != null) { // Which means theat it's a Multi Band COG
-        coverage = (GridCoverage2D) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
+        coverage = (GridCoverage) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
       }
       return coverage;
     }
-
 
     // checks if a STAC Item intersects with the Temporal Bounds
     // as necessitated by the context

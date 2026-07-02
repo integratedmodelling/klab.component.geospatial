@@ -1,7 +1,10 @@
 package org.integratedmodelling.geospatial.adapters;
 
 import java.util.Set;
+
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
@@ -85,10 +88,9 @@ public class StacAdapter {
     var scale = Scale.create(geometry);
     var time = scale.getTime();
     var space = scale.getSpace();
-    GridCoverage2D coverage = null;
+    GridCoverage coverage = null;
     try {
       coverage = collection.getCoverage(space, time, assetId, band, scope);
-      //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
     } catch (Exception e) {
       e.printStackTrace();
       scope.error(
@@ -96,6 +98,7 @@ public class StacAdapter {
           Notification.Outcome.Failure);
       return;
     }
+
     RasterEncoder.INSTANCE.encodeFromCoverage(
         resource, Parameters.create(urn.getParameters()), coverage, geometry, builder, scope);
   }
