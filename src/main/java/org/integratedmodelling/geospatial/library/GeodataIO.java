@@ -1,12 +1,18 @@
 package org.integratedmodelling.geospatial.library;
 
+import com.bedatadriven.jackson.datatype.jts.JtsModule;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.geosolutions.imageio.plugins.tiff.BaselineTIFFTagSet;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.imageio.ImageIO;
 
 import org.geotools.api.style.RasterSymbolizer;
@@ -19,17 +25,24 @@ import org.geotools.map.GridCoverageLayer;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.StyleBuilder;
+import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.raster.*;
 import org.integratedmodelling.geospatial.utils.Geotools;
 import org.integratedmodelling.klab.api.collections.Pair;
 import org.integratedmodelling.klab.api.collections.Parameters;
 import org.integratedmodelling.klab.api.data.Data;
+import org.integratedmodelling.klab.api.data.Metadata;
+import org.integratedmodelling.klab.api.data.RuntimeAsset;
 import org.integratedmodelling.klab.api.data.Storage;
 import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
+import org.integratedmodelling.klab.api.digitaltwin.GraphModel;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
+import org.integratedmodelling.klab.api.exceptions.KlabIllegalArgumentException;
 import org.integratedmodelling.klab.api.knowledge.Artifact;
+import org.integratedmodelling.klab.api.knowledge.Cohort;
 import org.integratedmodelling.klab.api.knowledge.KlabAsset;
+import org.integratedmodelling.klab.api.knowledge.SemanticType;
 import org.integratedmodelling.klab.api.knowledge.observation.Observation;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
@@ -42,11 +55,243 @@ import org.integratedmodelling.klab.utilities.Utils;
     name = "geospatial.io",
     description =
 """
-GeoTIFF export for gridded spatial data. Not concerned with colormaps, viewports and the like - those
-should be provided at the visualization side. Observations made with embedded WCS may already have a
-connected Geotiff: if so, use that, otherwise produce and cache the output.
+Geospatial exports for k.LAB assets. Raster exports are not concerned with colormaps, viewports and
+the like - those should be provided at the visualization side. Observations made with embedded WCS
+may already have a connected Geotiff: if so, use that, otherwise produce and cache the output.
 """)
 public class GeodataIO {
+
+  private static final ObjectMapper GEOJSON_MAPPER =
+      new ObjectMapper().registerModule(new JtsModule());
+
+  private record GeoJsonFeature(
+      RuntimeAsset asset,
+      org.locationtech.jts.geom.Geometry geometry,
+      String relationship) {}
+
+  @Exporter(
+      schema = "geojson",
+      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
+      mediaType = "application/geo+json",
+      fileExtensions = {"geojson", "json"},
+      description =
+          "Export a shape-bearing substantial observation, collective observation, or cohort to GeoJSON")
+  public InputStream exportGeoJSON(RuntimeAsset asset, ContextScope scope) {
+    if (!(asset instanceof Observation) && !(asset instanceof Cohort)) {
+      throw new KlabIllegalArgumentException(
+          "GeoJSON export requires a substantial observation or cohort");
+    }
+
+    if (asset instanceof Observation observation && !isSubstantial(observation)) {
+      throw new KlabIllegalArgumentException(
+          "GeoJSON export is only available for subject, agent, relationship, and event observations");
+    }
+
+    var features = new LinkedHashMap<String, GeoJsonFeature>();
+    addFeature(features, asset, "asset", true);
+
+    if (asset instanceof Observation observation
+        && observation.getObservable().getSemantics().isCollective()) {
+      addRelatedFeatures(features, scope.getChildrenOf(observation), "child");
+    } else if (asset instanceof Cohort cohort) {
+      var memberLinks =
+          scope
+              .getDigitalTwin()
+              .getKnowledgeGraph()
+              .getLinks(
+                  cohort,
+                  GraphModel.Relationship.Direction.OUTGOING,
+                  scope,
+                  GraphModel.Relationship.HAS_MEMBER);
+      addRelatedFeatures(
+          features, memberLinks.stream().map(link -> link.target()).toList(), "member");
+    }
+
+    try {
+      return writeGeoJSON(features.values());
+    } catch (IOException e) {
+      scope.error(e);
+      throw new KlabIOException(e);
+    }
+  }
+
+  private static boolean isSubstantial(Observation observation) {
+    return observation.getObservable() != null
+        && observation.getObservable().getSemantics() != null
+        && SemanticType.isEnumerableSubstantial(
+            observation.getObservable().getSemantics().getType());
+  }
+
+  private static void addRelatedFeatures(
+      Map<String, GeoJsonFeature> features,
+      Collection<? extends RuntimeAsset> relatedAssets,
+      String relationship) {
+    for (var related : relatedAssets) {
+      if (related instanceof Observation observation && isSubstantial(observation)) {
+        addFeature(features, observation, relationship, false);
+      }
+    }
+  }
+
+  private static void addFeature(
+      Map<String, GeoJsonFeature> features,
+      RuntimeAsset asset,
+      String relationship,
+      boolean required) {
+    var geometry = geometry(asset);
+    if (geometry == null || geometry.isEmpty()) {
+      if (required) {
+        throw new KlabIllegalArgumentException(
+            "GeoJSON export requires a spatial extent with a non-empty shape");
+      }
+      return;
+    }
+    var key =
+        asset.classify()
+            + ":"
+            + (asset.getId() == Observation.UNASSIGNED_ID
+                ? "transient:" + asset.getTransientId()
+                : asset.getId());
+    features.putIfAbsent(key, new GeoJsonFeature(asset, geometry, relationship));
+  }
+
+  private static org.locationtech.jts.geom.Geometry geometry(RuntimeAsset asset) {
+    var sourceGeometry =
+        switch (asset) {
+          case Observation observation -> observation.getGeometry();
+          case Cohort cohort -> cohort.getGeometry();
+          default -> null;
+        };
+    var scale = GeometryRepository.INSTANCE.scale(sourceGeometry);
+    if (scale == null
+        || scale.getSpace() == null
+        || scale.getSpace().getGeometricShape() == null
+        || scale.getSpace().getGeometricShape().isEmpty()) {
+      return null;
+    }
+    return Utils.Space.getStandardizedJTSShape(scale);
+  }
+
+  private static InputStream writeGeoJSON(Collection<GeoJsonFeature> features) throws IOException {
+    var output = new ByteArrayOutputStream();
+    try (JsonGenerator json = GEOJSON_MAPPER.getFactory().createGenerator(output)) {
+      json.writeStartObject();
+      json.writeStringField("type", "FeatureCollection");
+      json.writeArrayFieldStart("features");
+      for (var feature : features) {
+        writeFeature(json, feature);
+      }
+      json.writeEndArray();
+      json.writeEndObject();
+    }
+    return new ByteArrayInputStream(output.toByteArray());
+  }
+
+  private static void writeFeature(JsonGenerator json, GeoJsonFeature feature) throws IOException {
+    var asset = feature.asset();
+    json.writeStartObject();
+    json.writeStringField("type", "Feature");
+    if (asset.getId() == Observation.UNASSIGNED_ID) {
+      json.writeStringField("id", "transient:" + asset.getTransientId());
+    } else {
+      json.writeNumberField("id", asset.getId());
+    }
+    json.writeObjectField("geometry", feature.geometry());
+    json.writeObjectFieldStart("properties");
+    json.writeStringField("assetType", asset.classify().name());
+    json.writeStringField("relationship", feature.relationship());
+
+    if (asset instanceof Observation observation) {
+      writeString(json, "urn", observation.getUrn());
+      writeString(json, "name", observation.getName());
+      writeString(json, "observable", observation.getObservable().getUrn());
+      json.writeBooleanField(
+          "collective", observation.getObservable().getSemantics().isCollective());
+      writeString(json, "observationType", observationType(observation));
+      writeMetadata(json, observation.getMetadata());
+    } else if (asset instanceof Cohort cohort) {
+      writeString(json, "urn", cohort.getUrn());
+      writeString(json, "observable", cohort.getObservable().getUrn());
+      json.writeBooleanField("collective", true);
+      writeString(
+          json,
+          "observationType",
+          observationType(cohort.getObservable().getSemantics().getType()));
+      writeMetadata(json, cohort.getMetadata());
+    }
+
+    json.writeEndObject();
+    json.writeEndObject();
+  }
+
+  private static String observationType(Observation observation) {
+    return observationType(observation.getObservable().getSemantics().getType());
+  }
+
+  private static String observationType(Collection<SemanticType> types) {
+    for (var type :
+        List.of(
+            SemanticType.SUBJECT,
+            SemanticType.AGENT,
+            SemanticType.RELATIONSHIP,
+            SemanticType.EVENT)) {
+      if (types.contains(type)) {
+        return type.name();
+      }
+    }
+    return null;
+  }
+
+  private static void writeMetadata(JsonGenerator json, Metadata metadata) throws IOException {
+    if (metadata == null || metadata.isEmpty()) {
+      return;
+    }
+    json.writeObjectFieldStart("metadata");
+    for (var entry : metadata.entrySet()) {
+      json.writeFieldName(entry.getKey());
+      writeJsonValue(json, entry.getValue());
+    }
+    json.writeEndObject();
+  }
+
+  private static void writeJsonValue(JsonGenerator json, Object value) throws IOException {
+    switch (value) {
+      case null -> json.writeNull();
+      case String string -> json.writeString(string);
+      case Integer integer -> json.writeNumber(integer);
+      case Long number -> json.writeNumber(number);
+      case Float number -> json.writeNumber(number);
+      case Double number -> json.writeNumber(number);
+      case Short number -> json.writeNumber(number);
+      case Byte number -> json.writeNumber(number);
+      case Boolean bool -> json.writeBoolean(bool);
+      case Enum<?> enumValue -> json.writeString(enumValue.name());
+      case Collection<?> collection -> {
+        json.writeStartArray();
+        for (var element : collection) {
+          writeJsonValue(json, element);
+        }
+        json.writeEndArray();
+      }
+      case Map<?, ?> map -> {
+        json.writeStartObject();
+        for (var entry : map.entrySet()) {
+          json.writeFieldName(String.valueOf(entry.getKey()));
+          writeJsonValue(json, entry.getValue());
+        }
+        json.writeEndObject();
+      }
+      default -> json.writeString(value.toString());
+    }
+  }
+
+  private static void writeString(JsonGenerator json, String field, String value)
+      throws IOException {
+    if (value != null) {
+      json.writeStringField(field, value);
+    }
+  }
+
   @Exporter(
       schema = "geotiff",
       geometry =
