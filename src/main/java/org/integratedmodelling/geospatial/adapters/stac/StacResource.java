@@ -1,21 +1,33 @@
 package org.integratedmodelling.geospatial.adapters.stac;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.geotools.api.coverage.grid.GridCoverage;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.processing.Operations;
 import org.geotools.data.geojson.GeoJSONReader;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.hortonmachine.gears.io.stac.HMStacAsset;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.hortonmachine.gears.io.stac.HMStacItem;
 import org.hortonmachine.gears.io.stac.HMStacManager;
 import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.hortonmachine.gears.libs.monitor.LogProgressMonitor;
 import org.hortonmachine.gears.utils.RegionMap;
+import org.hortonmachine.gears.utils.crs.HMCrsRegistry;
+import org.hortonmachine.gears.utils.crs.HMCrsTransformer;
 import org.integratedmodelling.klab.api.exceptions.KlabIllegalStateException;
 import org.integratedmodelling.klab.api.exceptions.KlabResourceAccessException;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
@@ -27,6 +39,7 @@ import org.integratedmodelling.klab.runtime.scale.space.EnvelopeImpl;
 import org.integratedmodelling.klab.runtime.scale.space.ProjectionImpl;
 import org.integratedmodelling.klab.utilities.Utils;
 import org.locationtech.jts.geom.Geometry;
+import java.util.function.Predicate;
 
 /**
  * This class represents a k.LAB STAC resource. It heavily uses the HortonMachine implementation.
@@ -281,8 +294,9 @@ public class StacResource {
       return true;
     }
 
-    public GridCoverage2D getCoverage(Space space, Time time, String assetId, Scope scope)
+    public GridCoverage getCoverage(Space space, Time time, String assetId, Integer band, Scope scope)
         throws Exception {
+
       LogProgressMonitor lpm = new LogProgressMonitor();
       var manager = new HMStacManager(catalog.getUrl(), lpm);
       manager.open();
@@ -301,27 +315,17 @@ public class StacResource {
             "Not in a raster grid context during STAC coverage retrieval");
       }
 
-      var str = space.toString();
-
       var envelope = space.getEnvelope();
-//      var env =
-//          EnvelopeImpl.create(
-//              envelope.getMinX(),
-//              envelope.getMaxX(),
-//              envelope.getMinY(),
-//              envelope.getMaxY(),
-//              space.getProjection());
-//      var poly = GeometryUtilities.createPolygonFromEnvelope(env.getJTSEnvelope()).convexHull();
-      // GeometryRepository.INSTANCE.geometry(poly);
-      // collection.setGeometryFilter(poly);
+
       double[] bbox = {
         envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY()
       };
       collection.setBboxFilter(bbox);
       var start = time.getStart();
       var end = time.getEnd();
-      collection.setTimestampFilter(
-          new Date(start.getMilliseconds()), new Date(end.getMilliseconds()));
+
+//      collection.setTimestampFilter(
+//          new Date(start.getMilliseconds()), new Date(end.getMilliseconds())); --> STAC 1.1.x doesn't support temporal filtering so do that later
 
       // TODO for now, we do not manage the semantics for the MergeMode
       HMRaster.MergeMode mergeMode = HMRaster.MergeMode.SUBSTITUTE;
@@ -331,11 +335,9 @@ public class StacResource {
         throw new KlabIllegalStateException("No STAC items found for this context.");
       }
       scope.debug("Found " + items.size() + " STAC items.");
-      if (mergeMode == HMRaster.MergeMode.SUBSTITUTE) {
-        sortByDate(items, scope);
-      }
+      sortByDate(items, scope);
 
-      RegionMap region =
+        RegionMap region =
           RegionMap.fromBoundsAndGrid(
               space.getEnvelope().getMinX(),
               space.getEnvelope().getMaxX(),
@@ -352,21 +354,112 @@ public class StacResource {
           RegionMap.fromEnvelopeAndGrid(
               regionEnvelope, (int) grid.getXCells(), (int) grid.getYCells());
 
-      Set<Integer> EPSGsAtItems =
-          items.stream().map(HMStacItem::getEpsg).collect(Collectors.toUnmodifiableSet());
-      if (EPSGsAtItems.size() > 1) {
-        scope.warn(
-            "Multiple EPSGs found on the items "
-                + EPSGsAtItems
-                + ". The reprojection could affect the data.");
+      var p = new Predicate<HMStacAsset>() {
+
+        @Override
+        public boolean test(HMStacAsset asset) { // Assuming for now that "eo:bands" would be there, adding support for customised predicates
+          var bands = asset.getAssetNode().get("eo:bands");
+          if (bands != null && bands.isArray()) {
+            var bandsArray = (ArrayNode) bands;
+            for (var bandNode : bandsArray) {
+              String bandName = bandNode.get("name").asText();
+              if (bandName.equals(assetId)) { // under eo:band it's one of the band
+                return true;
+              }
+            }
+          }
+          return asset.getId().equals(assetId); // or else, if asset ID is just equal to Id, keeping it in sync with 0.11
+        }
+      };
+
+
+      // Filter here based on time, since in some STAC collections they don't yet support temporal filtering :( like ECDC
+//      items = items.stream()
+//              .filter(item -> isWithinRange(item, time.getStart().getMilliseconds(), time.getEnd().getMilliseconds(), scope))
+//              .collect(Collectors.toList());
+
+      if (items.isEmpty()){
+        throw new Exception("Found 0 items intersecting the spatio temporal constraint in the context");
+      }
+
+      scope.debug("Found " + items.size() + " items over Spatio Temporal Context from STAC");
+
+      // Way to handle to get S3 assets behind secret and user token
+      //TODO: Propose and find a better and general way to do this
+
+      System.out.println("Checking if the Asset are S3 Assets from VITO and updating the STAC Href");
+
+      for (HMStacItem item:items){
+          for (int i=0; i < item.getAssets().size(); i++) {
+            var jNode = item.getAssets().get(i).getAssetNode();
+            if (jNode instanceof ObjectNode objectNode) {
+              String existingHref = item.getAssets().get(i).getHandler().getAssetUrl();
+              if (existingHref.startsWith("s3://")){
+                    if (existingHref.contains("waw4-1")) {
+                      existingHref = "https://s3.waw4-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
+                    } else if (existingHref.contains("waw3-1")) {
+                      existingHref = "https://s3.waw3-1.cloudferro.com/swift/v1/" + existingHref.substring(5);
+                    } else {
+                      scope.debug("Found existingHref: " + existingHref + " using S3 protocol with unknown static url");
+                    }
+                objectNode.put("href", existingHref);
+                item.getAssets().set(i,new HMStacAsset(item.getAssets().get(i).getId(),
+                        objectNode));
+              }
+            } else {
+              scope.debug("Asset Node is not of type ObjectNode");
+            }
+          }
       }
 
       // Allow transform ensures the process to finish, but we shouldn't bet on the resulting data.
       final boolean allowTransform = true;
       HMRaster outRaster =
           collection.readRasterBandOnRegion(
-              regionTransformed, assetId, items, allowTransform, mergeMode, lpm);
-      return outRaster.buildCoverage();
+              regionTransformed, p, items, allowTransform, mergeMode, lpm);
+
+      CoordinateReferenceSystem targetCRS = HMCrsRegistry.INSTANCE.getCrs("4326");
+      if (!HMCrsRegistry.crsEquals(outRaster.getCrs(),targetCRS)) {
+        var transformer = new HMCrsTransformer(outRaster.getCrs(), targetCRS);
+        transformer.setAcceptLenientDatumShift(true);
+        outRaster = transformer.transform(outRaster);
+      }
+
+      HMRaster paddedRaster = new HMRaster.HMRasterWritableBuilder().setName("padded").setRegion(region)
+              .setCrs(targetCRS).setNoValue(outRaster.getNovalue()).build();
+      paddedRaster.mapRaster(null, outRaster, null);
+      GridCoverage coverage = outRaster.buildCoverage();
+
+      if (band != null) { // Which means theat it's a Multi Band COG
+        coverage = (GridCoverage) Operations.DEFAULT.selectSampleDimension(coverage, new int[]{band});
+      }
+      return coverage;
+    }
+
+    // checks if a STAC Item intersects with the Temporal Bounds
+    // as necessitated by the context
+
+    private boolean isWithinRange(HMStacItem item, long startMillis, long endMillis, Scope scope) {
+
+      String startTimestamp = item.getStartTimestamp();
+      String endTimestamp = item.getEndTimestamp();
+
+      if (startTimestamp == null || endTimestamp == null) {
+        return true;
+      }
+
+      try {
+        long itemStart = Instant.parse(startTimestamp).toEpochMilli();
+        long itemEnd = Instant.parse(endTimestamp).toEpochMilli();
+
+        // proper overlap check
+        return itemEnd >= startMillis && itemStart <= endMillis;
+
+      } catch (Exception e) {
+        scope.error("Invalid timestamp in STAC item:");
+        e.printStackTrace();
+        return false;
+      }
     }
 
     private static void sortByDate(List<HMStacItem> items, Scope scope) {
@@ -377,9 +470,9 @@ public class StacResource {
       items.sort(Comparator.comparing(HMStacItem::getTimestamp));
       scope.debug(
           "Ordered STAC items. First: ["
-              + items.get(0).getTimestamp()
+              + items.getFirst().getTimestamp()
               + "]; Last ["
-              + items.get(items.size() - 1).getTimestamp()
+              + items.getLast().getTimestamp()
               + "]");
     }
   }

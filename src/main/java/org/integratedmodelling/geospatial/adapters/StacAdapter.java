@@ -1,7 +1,10 @@
 package org.integratedmodelling.geospatial.adapters;
 
 import java.util.Set;
+
+import org.geotools.api.coverage.grid.GridCoverage;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
@@ -75,22 +78,27 @@ public class StacAdapter {
       Geometry geometry,
       Observable observable,
       ContextScope scope) {
+
+    System.setProperty("org.geotools.referencing.forceXY", "true");
+
     var collection =
         new StacResource.Collection(resource.getParameters().get("collection", String.class));
     var assetId = resource.getParameters().get("asset", String.class);
+    var band = resource.getParameters().get("band", Integer.class);
     var scale = Scale.create(geometry);
     var time = scale.getTime();
     var space = scale.getSpace();
-    GridCoverage2D coverage = null;
+    GridCoverage coverage = null;
     try {
-      coverage = collection.getCoverage(space, time, assetId, scope);
-      //      coverage = collection.getSTACCoverage(builder, space, time, assetId, scope);
+      coverage = collection.getCoverage(space, time, assetId, band, scope);
     } catch (Exception e) {
+      e.printStackTrace();
       scope.error(
           e instanceof KlabException ? e.getMessage() : "Cannot encode STAC resource",
           Notification.Outcome.Failure);
       return;
     }
+
     RasterEncoder.INSTANCE.encodeFromCoverage(
         resource, Parameters.create(urn.getParameters()), coverage, geometry, builder, scope);
   }
