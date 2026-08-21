@@ -83,8 +83,6 @@
                             <componentUsageRights>*</componentUsageRights>
                             <componentClass>org.integratedmodelling.geospatial.GeospatialPlugin</componentClass>
                             <componentVersion>1.0-SNAPSHOT</componentVersion>
-                            <!--<excludedDependencies>com.fasterxml.jackson.core:*,com.fasterxml.jackson.databind:*</excludedDependencies>-->
-                            <!--<excludedDependencies>xerces:xercesImpl,xml-apis:xml-apis,xpp3:xpp3</excludedDependencies>-->
                             <hostRuntimeArtifacts>
                                 org.integratedmodelling:klab.service.runtime.server:1.0.0-SNAPSHOT,
                                 org.integratedmodelling:klab.service.resources.server:1.0.0-SNAPSHOT
