@@ -10,7 +10,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,6 +36,7 @@ import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.scope.ContextScope;
+import org.integratedmodelling.klab.api.scope.SessionScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
@@ -192,6 +195,12 @@ public class WCSAdapter {
     // TODO check the asset types - for now assume it's numbers from WCS since they are coverages
     // essentially numbers
     return Artifact.Type.NUMBER;
+  }
+
+  @ResourceAdapter.BatchIngestor
+  public List<Resource> importCatalog(URL serviceUrl, SessionScope scope) {
+    var ret = new ArrayList<Resource>();
+    return ret;
   }
 
   @ResourceAdapter.Encoder

@@ -1,10 +1,11 @@
 package org.integratedmodelling.geospatial.adapters;
 
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-
 import org.geotools.api.coverage.grid.GridCoverage;
-import org.geotools.coverage.grid.GridCoverage2D;
-import org.hortonmachine.gears.libs.modules.HMRaster;
 import org.integratedmodelling.geospatial.adapters.raster.RasterEncoder;
 import org.integratedmodelling.geospatial.adapters.stac.StacResource;
 import org.integratedmodelling.klab.api.collections.Parameters;
@@ -16,6 +17,7 @@ import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.Scale;
 import org.integratedmodelling.klab.api.scope.ContextScope;
+import org.integratedmodelling.klab.api.scope.SessionScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
@@ -113,6 +115,18 @@ public class StacAdapter {
     // TODO check the asset types - for now assume it's numbers through geotiffs or other; later we
     //  may differentiate using further configuration.
     return Artifact.Type.NUMBER;
+  }
+
+  @ResourceAdapter.BatchIngestor
+  public List<Resource> importBatchLegacy(File zipOrFolder, SessionScope scope) {
+    var ret = new ArrayList<Resource>();
+    return ret;
+  }
+
+  @ResourceAdapter.BatchIngestor
+  public List<Resource> importCatalog(URL catalogUrl, SessionScope scope) {
+    var ret = new ArrayList<Resource>();
+    return ret;
   }
 
   //  /**
