@@ -64,7 +64,8 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west,
+  // north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -102,7 +103,8 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west,
+  // north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -140,7 +142,8 @@ public class Geotools {
   //    double north = grid.getEnvelope().getMaxY();
   //    CoordinateReferenceSystem crs =
   //        ((ProjectionImpl) grid.getProjection()).getCoordinateReferenceSystem();
-  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west, north - south);
+  //    ReferencedEnvelope writeEnvelope = new ReferencedEnvelope(crs, west, south, east - west,
+  // north - south);
   //    GridCoverageFactory factory = CoverageFactoryFinder.getGridCoverageFactory(null);
   //
   //    GridCoverage2D coverage = factory.create("stateraster", ri, writeEnvelope);
@@ -210,7 +213,7 @@ public class Geotools {
 
   /**
    * Make an initialized raster image to write on, return it so that {@link #makeCoverage(String,
-   * WritableRaster, Geometry)} can later be called.
+   * Grid, int, Object)} can later be called.
    */
   public static WritableRaster makeRaster(Geometry geometry, int type, Object noDataValue) {
     /*

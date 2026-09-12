@@ -29,12 +29,10 @@ import org.integratedmodelling.common.knowledge.GeometryRepository;
 import org.integratedmodelling.common.logging.Logging;
 import org.integratedmodelling.geospatial.adapters.raster.*;
 import org.integratedmodelling.geospatial.utils.Geotools;
+import org.integratedmodelling.geospatial.utils.RasterRenderer;
 import org.integratedmodelling.klab.api.collections.Pair;
 import org.integratedmodelling.klab.api.collections.Parameters;
-import org.integratedmodelling.klab.api.data.Data;
-import org.integratedmodelling.klab.api.data.Metadata;
-import org.integratedmodelling.klab.api.data.RuntimeAsset;
-import org.integratedmodelling.klab.api.data.Storage;
+import org.integratedmodelling.klab.api.data.*;
 import org.integratedmodelling.klab.api.data.mediation.classification.DataKey;
 import org.integratedmodelling.klab.api.digitaltwin.GraphModel;
 import org.integratedmodelling.klab.api.exceptions.KlabIOException;
@@ -55,8 +53,8 @@ import org.integratedmodelling.klab.utilities.Utils;
     name = "geospatial.io",
     description =
 """
-Geospatial exports for k.LAB assets. Raster exports are not concerned with colormaps, viewports and
-the like - those should be provided at the visualization side. Observations made with embedded WCS
+Geospatial exports for k.LAB assets. PNG visualizations apply observation colormaps and viewports; raster data exports preserve
+the underlying values. Observations made with embedded WCS
 may already have a connected Geotiff: if so, use that, otherwise produce and cache the output.
 """)
 public class GeodataIO {
@@ -65,9 +63,7 @@ public class GeodataIO {
       new ObjectMapper().registerModule(new JtsModule());
 
   private record GeoJsonFeature(
-      RuntimeAsset asset,
-      org.locationtech.jts.geom.Geometry geometry,
-      String relationship) {}
+      RuntimeAsset asset, org.locationtech.jts.geom.Geometry geometry, String relationship) {}
 
   @Exporter(
       schema = "geojson",
@@ -104,7 +100,7 @@ public class GeodataIO {
                   scope,
                   GraphModel.Relationship.HAS_MEMBER);
       addRelatedFeatures(
-          features, memberLinks.stream().map(link -> link.target()).toList(), "member");
+          features, memberLinks.stream().map(KnowledgeGraph.Link::target).toList(), "member");
     }
 
     try {
@@ -338,65 +334,65 @@ public class GeodataIO {
       Storage.DoubleScanner scanner,
       Parameters<String> arguments,
       ContextScope scope) {
+    return exportPNG(observation, scanner, arguments, scope);
+  }
+
+  @Exporter(
+      schema = "png",
+      properties = {
+        @KlabFunction.Argument(
+            name = "viewportX",
+            type = Artifact.Type.NUMBER,
+            description = "Maximum image width in pixels",
+            optional = true),
+        @KlabFunction.Argument(
+            name = "viewportY",
+            type = Artifact.Type.NUMBER,
+            description = "Maximum image height in pixels",
+            optional = true)
+      },
+      geometry = "S2",
+      fillCurve = Data.FillCurve.D2_XY,
+      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
+      mediaType = "image/png",
+      description = "Export a keyed observation using its @colormap(values=...) annotation")
+  public InputStream exportPNGKeyed(
+      Observation observation,
+      Storage.KeyScanner<?> scanner,
+      Parameters<String> arguments,
+      ContextScope scope) {
+    return exportPNG(observation, scanner, arguments, scope);
+  }
+
+  private InputStream exportPNG(
+      Observation observation,
+      Storage.Scanner scanner,
+      Parameters<String> arguments,
+      ContextScope scope) {
+    var coverage =
+        Geotools.stateToCoverage(
+            observation, scanner, DataBuffer.TYPE_FLOAT, Float.NaN, scope, false);
     try {
-
-      var viewportXarg = arguments.get("viewportX", 800.0);
-      var viewportYarg = arguments.get("viewportY", 800.0);
-      var viewportX = viewportXarg.intValue();
-      var viewportY = viewportYarg.intValue();
-
-      Logging.INSTANCE.info(
-          "Exporting PNG with viewport "
-              + viewportX
-              + "x"
-              + viewportY
-              + ": obs="
-              + observation
-              + ", scanner="
-              + scanner);
-
-      var file = File.createTempFile("klab", ".png");
-      var coverage =
-          Geotools.stateToCoverage(
-              observation, scanner, DataBuffer.TYPE_FLOAT, Float.NaN, scope, false);
-
-      // Create default style. TODO - link to colormap specs in Observation
-      StyleBuilder sb = new StyleBuilder();
-      RasterSymbolizer rs = sb.createRasterSymbolizer();
-      Style style = sb.createStyle(rs);
-
-      // Create map content and add layer
-      MapContent map = new MapContent();
-      GridCoverageLayer layer = new GridCoverageLayer(coverage, style);
-      map.addLayer(layer);
-
-      // Calculate dimensions preserving aspect ratio
-      var bounds = layer.getBounds();
-      double widthRatio = (double) viewportX / bounds.getWidth();
-      double heightRatio = (double) viewportY / bounds.getHeight();
-      double scale = Math.min(widthRatio, heightRatio);
-      int width = (int) (bounds.getWidth() * scale);
-      int height = (int) (bounds.getHeight() * scale);
-
-      // Create the image
-      BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-      Graphics2D g2d = image.createGraphics();
-      g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-      // Create renderer and draw
-      StreamingRenderer renderer = new StreamingRenderer();
-      renderer.setMapContent(map);
-      renderer.paint(g2d, new Rectangle(width, height), bounds);
-
-      // Write PNG
-      ImageIO.write(image, "png", file);
-      g2d.dispose();
-      map.dispose();
-
-      return new FileInputStream(file);
+      DataKey key =
+          scanner instanceof Storage.KeyScanner<?>
+              ? scope.getDigitalTwin().getStorageManager().getStorage(observation).getKey()
+              : null;
+      if (scanner instanceof Storage.KeyScanner<?> && key == null)
+        throw new KlabIllegalArgumentException("Keyed PNG export requires a DataKey");
+      var image =
+          RasterRenderer.render(
+              coverage,
+              observation,
+              key,
+              arguments.get("viewportX", 800.0).intValue(),
+              arguments.get("viewportY", 800.0).intValue());
+      var bytes = new ByteArrayOutputStream();
+      ImageIO.write(image, "png", bytes);
+      return new ByteArrayInputStream(bytes.toByteArray());
     } catch (IOException e) {
-      scope.error(e);
       throw new KlabIOException(e);
+    } finally {
+      coverage.dispose(true);
     }
   }
 
