@@ -46,7 +46,6 @@ import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Exporter;
 import org.integratedmodelling.klab.api.services.runtime.extension.KlabFunction;
 import org.integratedmodelling.klab.api.services.runtime.extension.Library;
-import org.integratedmodelling.klab.api.services.runtime.extension.Reference;
 import org.integratedmodelling.klab.utilities.Utils;
 
 @Library(
@@ -396,7 +395,12 @@ public class GeodataIO {
     }
   }
 
-  @Reference.Exporter(name = "geotiff") // TODO support this!
+  @Exporter(
+      schema = "geotiff",
+      fillCurve = Data.FillCurve.D2_XY,
+      knowledgeClass = KlabAsset.KnowledgeClass.OBSERVATION,
+      mediaType = "image/tiff; application=geotiff",
+      description = "GeoTIFF full export") // TODO support this! add COG-optimized
   public InputStream exportGeotiffCategorical(
       Observation observation, Storage.KeyScanner scanner, DataKey dataKey, ContextScope scope) {
     try {
