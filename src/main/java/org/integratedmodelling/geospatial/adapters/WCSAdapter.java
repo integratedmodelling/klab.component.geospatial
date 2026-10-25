@@ -37,6 +37,8 @@ import org.integratedmodelling.klab.api.geometry.Geometry;
 import org.integratedmodelling.klab.api.knowledge.*;
 import org.integratedmodelling.klab.api.scope.ContextScope;
 import org.integratedmodelling.klab.api.scope.SessionScope;
+import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.scope.UserScope;
 import org.integratedmodelling.klab.api.services.resources.adapters.Parameter;
 import org.integratedmodelling.klab.api.services.resources.adapters.ResourceAdapter;
 import org.integratedmodelling.klab.api.services.runtime.Notification;
@@ -169,8 +171,15 @@ public class WCSAdapter {
    * @return a WCS service. Inspect for errors before using.
    */
   public static WCSServiceManager getService(String serviceUrl, Version version) {
+    return getService(serviceUrl, version, null);
+  }
 
-    var key = serviceUrl + ":" + version;
+  public static synchronized WCSServiceManager getService(String serviceUrl, Version version, Scope scope) {
+
+    String principal = scope instanceof UserScope user && user.getUser() != null
+            && user.getUser().isAuthenticated() && !user.getUser().isAnonymous()
+        ? user.getUser().getUsername() : "";
+    var key = principal.length() + ":" + principal + ":" + serviceUrl + ":" + version;
 
     if (services.containsKey(key)) {
       return services.get(key);
@@ -178,7 +187,7 @@ public class WCSAdapter {
 
     Logging.INSTANCE.info(
         "Attempting to connect to WCS service at " + serviceUrl + " version " + version + " ...");
-    WCSServiceManager ret = new WCSServiceManager(serviceUrl, version);
+    WCSServiceManager ret = new WCSServiceManager(serviceUrl, version, scope);
     if (!ret.hasErrors()) {
       Logging.INSTANCE.info(
           "Connected to WCS service at " + serviceUrl + " version " + version + ".");
@@ -215,7 +224,7 @@ public class WCSAdapter {
     WCSServiceManager service =
         getService(
             resource.getParameters().get("serviceUrl", String.class),
-            Version.create(resource.getParameters().get("wcsVersion", String.class)));
+            Version.create(resource.getParameters().get("wcsVersion", String.class)), scope);
     var layer = service.getLayer(resource.getParameters().get("wcsIdentifier", String.class));
 
     if (layer != null) {
@@ -244,11 +253,11 @@ public class WCSAdapter {
   }
 
   @ResourceAdapter.Validator(phase = ResourceAdapter.Validator.LifecyclePhase.LocalImport)
-  public Notification validateImported(Resource resource) {
+  public Notification validateImported(Resource resource, Scope scope) {
     try {
       var serviceUrl = resource.getParameters().get("serviceUrl", String.class);
       var version = Version.create(resource.getParameters().get("wcsVersion", String.class));
-      WCSServiceManager service = getService(serviceUrl, version);
+      WCSServiceManager service = getService(serviceUrl, version, scope);
       if (service == null) {
         return Notification.warning("Unable to connect to WCS service at " + serviceUrl);
       }
@@ -301,7 +310,7 @@ public class WCSAdapter {
   public Notification preContextualization(Resource resource, ContextScope scope) {
     var serviceUrl = resource.getParameters().get("serviceUrl", String.class);
     var version = Version.create(resource.getParameters().get("wcsVersion", String.class));
-    WCSServiceManager service = getService(serviceUrl, version);
+    WCSServiceManager service = getService(serviceUrl, version, scope);
     if (service == null) {
       return Notification.warning("Unable to connect to WCS service at " + serviceUrl);
     }

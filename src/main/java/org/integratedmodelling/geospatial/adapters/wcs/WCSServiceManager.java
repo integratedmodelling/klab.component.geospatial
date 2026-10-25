@@ -23,6 +23,8 @@ import org.integratedmodelling.klab.api.exceptions.KlabAuthorizationException;
 import org.integratedmodelling.klab.api.exceptions.KlabInternalErrorException;
 import org.integratedmodelling.klab.api.exceptions.KlabUnimplementedException;
 import org.integratedmodelling.klab.api.geometry.Geometry;
+import org.integratedmodelling.klab.api.scope.Scope;
+import org.integratedmodelling.klab.api.scope.UserScope;
 import org.integratedmodelling.klab.api.geometry.impl.GeometryBuilder;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Envelope;
 import org.integratedmodelling.klab.api.knowledge.observation.scale.space.Projection;
@@ -620,12 +622,19 @@ public class WCSServiceManager {
    */
   @SuppressWarnings("unchecked")
   public WCSServiceManager(String serviceUrl, Version version) {
+    this(serviceUrl, version, null);
+  }
+
+  public WCSServiceManager(String serviceUrl, Version version, Scope scope) {
     this.serviceUrl = serviceUrl;
     this.version = version;
 
     // Handle authentication if credentials are available
     ExternalAuthenticationCredentials credentials =
-        Authentication.INSTANCE.getCredentials(serviceUrl, null);
+        scope instanceof UserScope user && user.getUser() != null
+                && user.getUser().isAuthenticated() && !user.getUser().isAnonymous()
+            ? Authentication.INSTANCE.getCredentials(serviceUrl, scope)
+            : null;
     if (credentials != null) {
       this.authorization = new Authorization(credentials);
       if (!this.authorization.isOnline()) {
