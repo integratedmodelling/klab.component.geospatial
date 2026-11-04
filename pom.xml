@@ -27,7 +27,9 @@
         <geotools.version>34.4</geotools.version>
         <jts.version>1.20.0</jts.version>
         <h2gis.version>1.5.0</h2gis.version>
-        <hortonmachine.version>0.11.3-SNAPSHOT</hortonmachine.version>
+        <hortonmachine.version>0.12.0</hortonmachine.version>
+        <!-- H2GIS 1.5.0 requires this API; the GeoTools platform BOM selects 1.1.119. -->
+        <h2.version>1.4.197</h2.version>
         <junit-version>5.13.4</junit-version>
         <mockito-version>5.18.0</mockito-version>
         <maven.surefire.version>3.5.3</maven.surefire.version>
@@ -119,6 +121,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.geotools</groupId>
                 <artifactId>gt-bom</artifactId>
